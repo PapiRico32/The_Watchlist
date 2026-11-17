@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../api/api_service.dart';
+import '../services/api_service.dart';
+import '../models/models.dart';
 import '../widgets/tarjeta_publicacion.dart';
 import 'pantalla_publicacion.dart';
 
@@ -17,6 +18,7 @@ class _PantallaExplorarState extends State<PantallaExplorar> {
   String _orden = 'recientes';
   List<Publicacion> _resultados = [];
   bool _cargando = false;
+  String? _error;
 
   @override
   void initState() {
@@ -24,22 +26,32 @@ class _PantallaExplorarState extends State<PantallaExplorar> {
     _buscar();
   }
 
+  @override
+  void dispose() {
+    _busqueda.dispose();
+    super.dispose();
+  }
+
   Future<void> _buscar() async {
-    setState(() => _cargando = true);
+    setState(() {
+      _cargando = true;
+      _error = null;
+    });
 
     try {
-      final api = ApiService();
-      final datos = await api.listarPublicaciones(
+      final datos = await ApiService().listarPublicaciones(
         q: _busqueda.text,
         tipo: _tipo,
         orden: _orden,
       );
 
+      if (!mounted) return;
       setState(() => _resultados = datos);
-    } catch (_) {
-      setState(() => _resultados = []);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _error = error.toString());
     } finally {
-      setState(() => _cargando = false);
+      if (mounted) setState(() => _cargando = false);
     }
   }
 
@@ -54,10 +66,11 @@ class _PantallaExplorarState extends State<PantallaExplorar> {
               TextField(
                 controller: _busqueda,
                 decoration: InputDecoration(
-                  hintText: 'Buscar peliculas, series o etiquetas',
+                  hintText: 'Buscar películas, series o etiquetas',
                   prefixIcon: const Icon(Icons.search),
                   suffixIcon: IconButton(
-                    icon: const Icon(Icons.arrow_forward),
+                    tooltip: 'Buscar',
+                    icon: const Icon(Icons.arrow_forward_rounded),
                     onPressed: _buscar,
                   ),
                 ),
@@ -68,27 +81,41 @@ class _PantallaExplorarState extends State<PantallaExplorar> {
                 children: [
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: _tipo,
+                      initialValue: _tipo,
                       decoration: const InputDecoration(labelText: 'Tipo'),
                       items: const [
                         DropdownMenuItem(value: '', child: Text('Todo')),
-                        DropdownMenuItem(value: 'pelicula', child: Text('Peliculas')),
+                        DropdownMenuItem(
+                          value: 'pelicula',
+                          child: Text('Películas'),
+                        ),
                         DropdownMenuItem(value: 'serie', child: Text('Series')),
                       ],
-                      onChanged: (valor) => setState(() => _tipo = valor ?? ''),
+                      onChanged: (valor) {
+                        setState(() => _tipo = valor ?? '');
+                        _buscar();
+                      },
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: _orden,
+                      initialValue: _orden,
                       decoration: const InputDecoration(labelText: 'Orden'),
                       items: const [
-                        DropdownMenuItem(value: 'recientes', child: Text('Recientes')),
-                        DropdownMenuItem(value: 'valoradas', child: Text('Mejor valoradas')),
+                        DropdownMenuItem(
+                          value: 'recientes',
+                          child: Text('Recientes'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'valoradas',
+                          child: Text('Mejor valoradas'),
+                        ),
                       ],
-                      onChanged: (valor) =>
-                          setState(() => _orden = valor ?? 'recientes'),
+                      onChanged: (valor) {
+                        setState(() => _orden = valor ?? 'recientes');
+                        _buscar();
+                      },
                     ),
                   ),
                 ],
@@ -99,30 +126,66 @@ class _PantallaExplorarState extends State<PantallaExplorar> {
         Expanded(
           child: _cargando
               ? const Center(child: CircularProgressIndicator())
-              : _resultados.isEmpty
-                  ? const Center(child: Text('No se encontraron publicaciones'))
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: _resultados.length,
-                      itemBuilder: (_, index) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: TarjetaPublicacion(
-                            publicacion: _resultados[index],
-                            alPresionar: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => PantallaPublicacion(
-                                    id: _resultados[index].id,
-                                  ),
-                                ),
-                              );
-                            },
+              : _error != null
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.wifi_off_rounded,
+                          size: 40,
+                          color: Color(0xFFC4B5FD),
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'No pudimos completar la búsqueda',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          _error!,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant,
                           ),
-                        );
-                      },
+                        ),
+                        TextButton.icon(
+                          onPressed: _buscar,
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Intentar de nuevo'),
+                        ),
+                      ],
                     ),
+                  ),
+                )
+              : _resultados.isEmpty
+              ? const Center(child: Text('No se encontraron publicaciones'))
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: _resultados.length,
+                  itemBuilder: (_, index) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: TarjetaPublicacion(
+                        publicacion: _resultados[index],
+                        alPresionar: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => PantallaPublicacion(
+                                id: _resultados[index].id,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
         ),
       ],
     );

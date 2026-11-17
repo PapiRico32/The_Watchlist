@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../api/api_service.dart';
+import '../services/api_service.dart';
+import '../models/models.dart';
 import 'pantalla_carrito.dart';
 
 class PantallaProducto extends StatefulWidget {
@@ -53,18 +54,15 @@ class _PantallaProductoState extends State<PantallaProducto> {
         MaterialPageRoute(builder: (_) => const PantallaCarrito()),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_cargando) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     final producto = _producto;
@@ -89,7 +87,7 @@ class _PantallaProductoState extends State<PantallaProducto> {
                 width: double.infinity,
                 height: 280,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
+                errorBuilder: (_, _, _) => Container(
                   height: 280,
                   color: const Color(0xFF2B2B3A),
                   child: const Icon(Icons.image, size: 56),

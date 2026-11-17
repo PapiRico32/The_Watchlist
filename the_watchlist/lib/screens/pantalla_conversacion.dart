@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../api/api_service.dart';
-import '../state/auth_provider.dart';
+import '../services/api_service.dart';
+import '../models/models.dart';
+import '../services/auth_provider.dart';
 
 class PantallaConversacion extends StatefulWidget {
   final int id;
@@ -49,9 +50,8 @@ class _PantallaConversacionState extends State<PantallaConversacion> {
       await _cargar();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
@@ -69,39 +69,36 @@ class _PantallaConversacionState extends State<PantallaConversacion> {
             child: _cargando
                 ? const Center(child: CircularProgressIndicator())
                 : _mensajes.isEmpty
-                    ? const Center(child: Text('Inicia la conversacion'))
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _mensajes.length,
-                        itemBuilder: (_, index) {
-                          final mensaje = _mensajes[index];
-                          final propio =
-                              mensaje.idUsuario == idUsuario;
+                ? const Center(child: Text('Inicia la conversacion'))
+                : ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _mensajes.length,
+                    itemBuilder: (_, index) {
+                      final mensaje = _mensajes[index];
+                      final propio = mensaje.idUsuario == idUsuario;
 
-                          return Align(
-                            alignment: propio
-                                ? Alignment.centerRight
-                                : Alignment.centerLeft,
-                            child: Container(
-                              margin: const EdgeInsets.only(bottom: 8),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 10,
-                              ),
-                              constraints: const BoxConstraints(
-                                maxWidth: 280,
-                              ),
-                              decoration: BoxDecoration(
-                                color: propio
-                                    ? const Color(0xFF7C3AED)
-                                    : const Color(0xFF171722),
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Text(mensaje.texto),
-                            ),
-                          );
-                        },
-                      ),
+                      return Align(
+                        alignment: propio
+                            ? Alignment.centerRight
+                            : Alignment.centerLeft,
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
+                          constraints: const BoxConstraints(maxWidth: 280),
+                          decoration: BoxDecoration(
+                            color: propio
+                                ? const Color(0xFF7C3AED)
+                                : const Color(0xFF171722),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Text(mensaje.texto),
+                        ),
+                      );
+                    },
+                  ),
           ),
           Padding(
             padding: const EdgeInsets.all(16),
@@ -116,10 +113,7 @@ class _PantallaConversacionState extends State<PantallaConversacion> {
                     onSubmitted: (_) => _enviar(),
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.send),
-                  onPressed: _enviar,
-                ),
+                IconButton(icon: const Icon(Icons.send), onPressed: _enviar),
               ],
             ),
           ),

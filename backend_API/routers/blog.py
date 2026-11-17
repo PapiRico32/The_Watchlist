@@ -5,7 +5,8 @@ from database import get_db
 from models import Blog, Valoracion, Comentario, Reaccion, Sticker, Reporte
 from schemas import (
     PublicacionCrear, PublicacionActualizar, PublicacionOut,
-    ValoracionCrear, ComentarioCrear, ReaccionCrear, ComentarioOut
+    ValoracionCrear, ComentarioCrear, ReaccionCrear, ComentarioOut,
+    ReporteCrear
 )
 from auth import get_current_user
 from typing import List, Optional
@@ -13,7 +14,11 @@ import os, uuid
 
 router = APIRouter(prefix="/blog", tags=["Blog"])
 
-UPLOAD_DIR = "uploads/publicaciones"
+UPLOAD_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "uploads",
+    "publicaciones",
+)
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 

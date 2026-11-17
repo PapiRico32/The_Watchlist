@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../state/auth_provider.dart';
-import 'pantalla_inicio.dart';
+import '../services/auth_provider.dart';
 
 class PantallaRegistro extends StatefulWidget {
   const PantallaRegistro({super.key});
@@ -86,10 +85,7 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
             ),
             const SizedBox(height: 20),
             if (_error != null)
-              Text(
-                _error!,
-                style: const TextStyle(color: Colors.redAccent),
-              ),
+              Text(_error!, style: const TextStyle(color: Colors.redAccent)),
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,

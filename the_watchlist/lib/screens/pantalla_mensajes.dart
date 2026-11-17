@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../api/api_service.dart';
+import '../services/api_service.dart';
+import '../models/models.dart';
 import 'pantalla_conversacion.dart';
 
 class PantallaMensajes extends StatefulWidget {
@@ -66,9 +67,7 @@ class _PantallaMensajesState extends State<PantallaMensajes> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => PantallaConversacion(
-                    id: conversacion.id,
-                  ),
+                  builder: (_) => PantallaConversacion(id: conversacion.id),
                 ),
               ).then((_) => _cargar());
             },

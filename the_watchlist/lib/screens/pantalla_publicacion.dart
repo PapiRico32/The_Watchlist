@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
-import '../api/api_service.dart';
-import '../state/auth_provider.dart';
+import '../services/api_service.dart';
+import '../models/models.dart';
 import '../widgets/estrellas.dart';
 
 class PantallaPublicacion extends StatefulWidget {
@@ -22,6 +21,7 @@ class _PantallaPublicacionState extends State<PantallaPublicacion> {
   final _comentario = TextEditingController();
   bool _spoiler = false;
   bool _cargando = true;
+  String? _error;
 
   @override
   void initState() {
@@ -29,22 +29,33 @@ class _PantallaPublicacionState extends State<PantallaPublicacion> {
     _cargar();
   }
 
-  Future<void> _cargar() async {
-    final api = ApiService();
+  @override
+  void dispose() {
+    _comentario.dispose();
+    super.dispose();
+  }
 
+  Future<void> _cargar() async {
     try {
+      final api = ApiService();
       final publicacion = await api.obtenerPublicacion(widget.id);
       final comentarios = await api.obtenerComentarios(widget.id);
       final stickers = await api.listarStickers();
 
+      if (!mounted) return;
       setState(() {
         _publicacion = publicacion;
         _comentarios = comentarios;
         _stickers = stickers;
         _cargando = false;
+        _error = null;
       });
-    } catch (_) {
-      setState(() => _cargando = false);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _error = error.toString();
+        _cargando = false;
+      });
     }
   }
 
@@ -56,9 +67,8 @@ class _PantallaPublicacionState extends State<PantallaPublicacion> {
       await _cargar();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
@@ -81,9 +91,8 @@ class _PantallaPublicacionState extends State<PantallaPublicacion> {
       await _cargar();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
@@ -96,29 +105,55 @@ class _PantallaPublicacionState extends State<PantallaPublicacion> {
       await _cargar();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final auth = Provider.of<AuthProvider>(context);
-    final usuario = auth.usuario;
-
     if (_cargando) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     final publicacion = _publicacion;
 
     if (publicacion == null) {
-      return const Scaffold(
-        body: Center(child: Text('No fue posible cargar la publicacion')),
+      return Scaffold(
+        appBar: AppBar(title: const Text('Publicación')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.wifi_off_rounded,
+                  size: 44,
+                  color: Color(0xFFC4B5FD),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'No fue posible cargar la publicación',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+                if (_error != null) ...[
+                  const SizedBox(height: 6),
+                  Text(_error!, textAlign: TextAlign.center),
+                ],
+                TextButton.icon(
+                  onPressed: () {
+                    setState(() => _cargando = true);
+                    _cargar();
+                  },
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Intentar de nuevo'),
+                ),
+              ],
+            ),
+          ),
+        ),
       );
     }
 
@@ -136,7 +171,7 @@ class _PantallaPublicacionState extends State<PantallaPublicacion> {
                 width: double.infinity,
                 height: 220,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
+                errorBuilder: (_, _, _) => Container(
                   height: 220,
                   color: const Color(0xFF2B2B3A),
                   child: const Icon(Icons.movie, size: 56),
@@ -168,7 +203,7 @@ class _PantallaPublicacionState extends State<PantallaPublicacion> {
                 if (publicacion.spoilers)
                   Chip(
                     label: const Text('Spoilers'),
-                    backgroundColor: Colors.red.withOpacity(0.2),
+                    backgroundColor: Colors.red.withValues(alpha: 0.2),
                   ),
               ],
             ),
@@ -183,10 +218,7 @@ class _PantallaPublicacionState extends State<PantallaPublicacion> {
             Row(
               children: List.generate(5, (index) {
                 return IconButton(
-                  icon: const Icon(
-                    Icons.star,
-                    color: Color(0xFFFBBF24),
-                  ),
+                  icon: const Icon(Icons.star, color: Color(0xFFFBBF24)),
                   onPressed: () => _valorar(index + 1),
                 );
               }),
@@ -221,8 +253,9 @@ class _PantallaPublicacionState extends State<PantallaPublicacion> {
                       selected: seleccionado,
                       onSelected: (_) {
                         setState(() {
-                          _stickerSeleccionado =
-                              seleccionado ? null : sticker.id;
+                          _stickerSeleccionado = seleccionado
+                              ? null
+                              : sticker.id;
                         });
                       },
                     ),
@@ -264,7 +297,7 @@ class _PantallaPublicacionState extends State<PantallaPublicacion> {
                       if (comentario.spoiler)
                         Container(
                           padding: const EdgeInsets.all(8),
-                          color: Colors.red.withOpacity(0.15),
+                          color: Colors.red.withValues(alpha: 0.15),
                           child: const Text(
                             'Contenido con spoiler. Manten presionado para mostrarlo.',
                           ),
@@ -280,7 +313,7 @@ class _PantallaPublicacionState extends State<PantallaPublicacion> {
                             ),
                             width: 42,
                             height: 42,
-                            errorBuilder: (_, __, ___) =>
+                            errorBuilder: (_, _, _) =>
                                 const Icon(Icons.emoji_emotions),
                           ),
                         ),
@@ -326,11 +359,7 @@ class _PantallaPublicacionState extends State<PantallaPublicacion> {
     );
   }
 
-  Widget _botonReaccion(
-    Comentario comentario,
-    String tipo,
-    IconData icono,
-  ) {
+  Widget _botonReaccion(Comentario comentario, String tipo, IconData icono) {
     final cantidad = comentario.reacciones[tipo] ?? 0;
 
     return ActionChip(

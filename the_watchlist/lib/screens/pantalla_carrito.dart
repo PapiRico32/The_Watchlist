@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../api/api_service.dart';
+import '../services/api_service.dart';
+import '../models/models.dart';
 import 'pantalla_checkout.dart';
 
 class PantallaCarrito extends StatefulWidget {
@@ -49,9 +50,7 @@ class _PantallaCarritoState extends State<PantallaCarrito> {
   @override
   Widget build(BuildContext context) {
     if (_cargando) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     final carrito = _carrito;
@@ -114,12 +113,8 @@ class _PantallaCarritoState extends State<PantallaCarrito> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  'Subtotal: \$${carrito.subtotal.toStringAsFixed(2)} MXN',
-                ),
-                Text(
-                  'Envio: \$${carrito.envio.toStringAsFixed(2)} MXN',
-                ),
+                Text('Subtotal: \$${carrito.subtotal.toStringAsFixed(2)} MXN'),
+                Text('Envio: \$${carrito.envio.toStringAsFixed(2)} MXN'),
                 Text(
                   'Total: \$${carrito.total.toStringAsFixed(2)} MXN',
                   style: const TextStyle(

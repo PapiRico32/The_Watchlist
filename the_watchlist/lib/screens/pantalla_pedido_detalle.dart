@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../api/api_service.dart';
+import '../services/api_service.dart';
+import '../models/models.dart';
 
 class PantallaPedidoDetalle extends StatefulWidget {
   final int id;
@@ -43,9 +44,8 @@ class _PantallaPedidoDetalleState extends State<PantallaPedidoDetalle> {
       await _cargar();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
@@ -53,17 +53,13 @@ class _PantallaPedidoDetalleState extends State<PantallaPedidoDetalle> {
   @override
   Widget build(BuildContext context) {
     if (_cargando) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     final pedido = _pedido;
 
     if (pedido == null) {
-      return const Scaffold(
-        body: Center(child: Text('Pedido no encontrado')),
-      );
+      return const Scaffold(body: Center(child: Text('Pedido no encontrado')));
     }
 
     return Scaffold(

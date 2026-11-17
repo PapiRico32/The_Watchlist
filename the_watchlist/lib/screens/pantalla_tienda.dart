@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../api/api_service.dart';
+import '../services/api_service.dart';
+import '../models/models.dart';
 import 'pantalla_producto.dart';
-import 'pantalla_carrito.dart';
 
 class PantallaTienda extends StatefulWidget {
   const PantallaTienda({super.key});
@@ -14,6 +14,7 @@ class PantallaTienda extends StatefulWidget {
 class _PantallaTiendaState extends State<PantallaTienda> {
   List<Producto> _productos = [];
   bool _cargando = true;
+  String? _error;
 
   @override
   void initState() {
@@ -22,16 +23,23 @@ class _PantallaTiendaState extends State<PantallaTienda> {
   }
 
   Future<void> _cargar() async {
-    final api = ApiService();
-
+    setState(() {
+      _cargando = true;
+      _error = null;
+    });
     try {
-      final productos = await api.listarProductos();
+      final productos = await ApiService().listarProductos();
+      if (!mounted) return;
       setState(() {
         _productos = productos;
         _cargando = false;
       });
-    } catch (_) {
-      setState(() => _cargando = false);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _error = error.toString();
+        _cargando = false;
+      });
     }
   }
 
@@ -41,89 +49,112 @@ class _PantallaTiendaState extends State<PantallaTienda> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Tienda'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.shopping_cart),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const PantallaCarrito()),
-            ),
-          ),
-        ],
-      ),
-      body: _productos.isEmpty
-          ? const Center(child: Text('No hay productos disponibles'))
-          : GridView.builder(
-              padding: const EdgeInsets.all(16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 16,
-                crossAxisSpacing: 16,
-                childAspectRatio: 0.7,
+    if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.wifi_off_rounded,
+                size: 40,
+                color: Color(0xFFC4B5FD),
               ),
-              itemCount: _productos.length,
-              itemBuilder: (_, index) {
-                final producto = _productos[index];
+              const SizedBox(height: 12),
+              Text(_error!, textAlign: TextAlign.center),
+              TextButton.icon(
+                onPressed: _cargar,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Intentar de nuevo'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
-                return Card(
-                  clipBehavior: Clip.antiAlias,
-                  child: InkWell(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => PantallaProducto(
-                            id: producto.id,
-                          ),
-                        ),
-                      );
-                    },
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Image.network(
-                            ApiService.imagenUrlStatic(producto.imagen),
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => const Icon(
-                              Icons.image,
-                              size: 48,
-                            ),
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(10),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                producto.nombre,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text(
-                                '\$${producto.precio.toStringAsFixed(2)} MXN',
-                                style: const TextStyle(
-                                  color: Color(0xFF7C3AED),
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+    if (_productos.isEmpty) {
+      return const Center(child: Text('No hay productos disponibles'));
+    }
+
+    return GridView.builder(
+      padding: const EdgeInsets.all(16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 16,
+        crossAxisSpacing: 16,
+        childAspectRatio: 0.68,
+      ),
+      itemCount: _productos.length,
+      itemBuilder: (_, index) {
+        final producto = _productos[index];
+
+        return Card(
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => PantallaProducto(id: producto.id),
+                ),
+              );
+            },
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Image.network(
+                    ApiService.imagenUrlStatic(producto.imagen),
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => const Center(
+                      child: Icon(
+                        Icons.local_mall_outlined,
+                        size: 42,
+                        color: Color(0xFFC4B5FD),
+                      ),
                     ),
                   ),
-                );
-              },
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        producto.categoria.toUpperCase(),
+                        style: const TextStyle(
+                          color: Color(0xFFC4B5FD),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        producto.nombre,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        '\$${producto.precio.toStringAsFixed(2)} MXN',
+                        style: const TextStyle(
+                          color: Color(0xFFC4B5FD),
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
+          ),
+        );
+      },
     );
   }
 }

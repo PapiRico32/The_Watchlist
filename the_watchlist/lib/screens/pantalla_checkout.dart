@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../api/api_service.dart';
+import '../services/api_service.dart';
 import 'pantalla_pedido_detalle.dart';
 
 class PantallaCheckout extends StatefulWidget {

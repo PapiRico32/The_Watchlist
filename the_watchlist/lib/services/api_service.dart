@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -14,9 +16,39 @@ class ApiException implements Exception {
   String toString() => mensaje;
 }
 
-class ApiService {
-  static const String baseUrl = 'http://10.0.2.2:8000';
+class _TimeoutClient extends http.BaseClient {
+  final http.Client _client = http.Client();
 
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) {
+    return _client
+        .send(request)
+        .timeout(
+          const Duration(seconds: 15),
+          onTimeout: () {
+            throw ApiException('La API no respondió en 15 segundos.');
+          },
+        );
+  }
+
+  @override
+  void close() => _client.close();
+}
+
+class ApiService {
+  static const String _baseUrlConfigurada = String.fromEnvironment(
+    'API_BASE_URL',
+  );
+
+  static String get baseUrl {
+    if (_baseUrlConfigurada.isNotEmpty) {
+      return _baseUrlConfigurada;
+    }
+
+    return kIsWeb ? 'http://127.0.0.1:8000' : 'http://10.0.2.2:8000';
+  }
+
+  final http.Client _http = _TimeoutClient();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   Future<String?> obtenerToken() async {
@@ -40,7 +72,7 @@ class ApiService {
 
   String imagenUrl(String? ruta) {
     if (ruta == null || ruta.isEmpty) {
-      return 'https://via.placeholder.com/800x450.png?text=Entre+Escenas';
+      return 'https://via.placeholder.com/800x450.png?text=The+Watchlist';
     }
 
     if (ruta.startsWith('http')) return ruta;
@@ -50,26 +82,34 @@ class ApiService {
 
   Future<dynamic> _procesar(http.Response response) async {
     final body = response.body.isEmpty ? '{}' : response.body;
+    dynamic datos;
 
     try {
-      final datos = jsonDecode(body);
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        return datos;
-      }
-
-      final mensaje = datos is Map && datos.containsKey('detail')
-          ? datos['detail'].toString()
-          : 'Error en la solicitud';
-
-      throw ApiException(mensaje);
-    } catch (_) {
-      throw ApiException('No fue posible conectar con el servidor');
+      datos = jsonDecode(body);
+    } on FormatException {
+      throw ApiException(
+        'El servidor devolvió una respuesta inválida '
+        '(${response.statusCode}).',
+      );
     }
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return datos;
+    }
+
+    final mensaje = datos is Map && datos.containsKey('detail')
+        ? datos['detail'].toString()
+        : 'Error en la solicitud (${response.statusCode})';
+
+    throw ApiException(mensaje);
   }
 
-  Future<Usuario> registrar(String nombre, String correo, String password) async {
-    final response = await http.post(
+  Future<Usuario> registrar(
+    String nombre,
+    String correo,
+    String password,
+  ) async {
+    final response = await _http.post(
       Uri.parse('$baseUrl/auth/registrar'),
       headers: _headers(),
       body: jsonEncode({
@@ -85,13 +125,10 @@ class ApiService {
   }
 
   Future<Usuario> iniciarSesion(String correo, String password) async {
-    final response = await http.post(
+    final response = await _http.post(
       Uri.parse('$baseUrl/auth/login'),
       headers: _headers(),
-      body: jsonEncode({
-        'mail': correo,
-        'password': password,
-      }),
+      body: jsonEncode({'mail': correo, 'password': password}),
     );
 
     final datos = await _procesar(response);
@@ -105,7 +142,7 @@ class ApiService {
 
   Future<Usuario> obtenerPerfil() async {
     final token = await obtenerToken();
-    final response = await http.get(
+    final response = await _http.get(
       Uri.parse('$baseUrl/auth/me'),
       headers: _headers(token: token),
     );
@@ -131,17 +168,15 @@ class ApiService {
         .replace(queryParameters: query);
 
     final token = await obtenerToken();
-    final response = await http.get(uri, headers: _headers(token: token));
+    final response = await _http.get(uri, headers: _headers(token: token));
 
     final datos = await _procesar(response);
-    return (datos as List)
-        .map((item) => Publicacion.fromJson(item))
-        .toList();
+    return (datos as List).map((item) => Publicacion.fromJson(item)).toList();
   }
 
   Future<Publicacion> obtenerPublicacion(int id) async {
     final token = await obtenerToken();
-    final response = await http.get(
+    final response = await _http.get(
       Uri.parse('$baseUrl/blog/publicaciones/$id'),
       headers: _headers(token: token),
     );
@@ -152,7 +187,7 @@ class ApiService {
 
   Future<List<Comentario>> obtenerComentarios(int idPublicacion) async {
     final token = await obtenerToken();
-    final response = await http.get(
+    final response = await _http.get(
       Uri.parse('$baseUrl/blog/publicaciones/$idPublicacion/comentarios'),
       headers: _headers(token: token),
     );
@@ -193,14 +228,10 @@ class ApiService {
     });
 
     if (imagen != null) {
-      request.files.add(
-        await http.MultipartFile.fromPath('img', imagen.path),
-      );
+      request.files.add(await http.MultipartFile.fromPath('img', imagen.path));
     }
 
-    final response = await http.Response.fromStream(
-      await request.send(),
-    );
+    final response = await http.Response.fromStream(await _http.send(request));
 
     final datos = await _procesar(response);
     return Publicacion.fromJson(datos);
@@ -208,7 +239,7 @@ class ApiService {
 
   Future<void> valorar(int idPublicacion, int estrellas) async {
     final token = await obtenerToken();
-    final response = await http.post(
+    final response = await _http.post(
       Uri.parse('$baseUrl/blog/publicaciones/$idPublicacion/valorar'),
       headers: _headers(token: token),
       body: jsonEncode({'estrellas': estrellas}),
@@ -219,7 +250,7 @@ class ApiService {
 
   Future<List<Sticker>> listarStickers() async {
     final token = await obtenerToken();
-    final response = await http.get(
+    final response = await _http.get(
       Uri.parse('$baseUrl/blog/stickers'),
       headers: _headers(token: token),
     );
@@ -235,7 +266,7 @@ class ApiService {
     bool spoiler,
   ) async {
     final token = await obtenerToken();
-    final response = await http.post(
+    final response = await _http.post(
       Uri.parse('$baseUrl/blog/comentarios'),
       headers: _headers(token: token),
       body: jsonEncode({
@@ -251,7 +282,7 @@ class ApiService {
 
   Future<void> reaccionar(int idComentario, String tipo) async {
     final token = await obtenerToken();
-    final response = await http.post(
+    final response = await _http.post(
       Uri.parse('$baseUrl/blog/comentarios/$idComentario/reaccion'),
       headers: _headers(token: token),
       body: jsonEncode({'tipo': tipo}),
@@ -262,7 +293,7 @@ class ApiService {
 
   Future<List<Conversacion>> listarConversaciones() async {
     final token = await obtenerToken();
-    final response = await http.get(
+    final response = await _http.get(
       Uri.parse('$baseUrl/mensajes/conversaciones'),
       headers: _headers(token: token),
     );
@@ -273,7 +304,7 @@ class ApiService {
 
   Future<int> iniciarConversacion(int idUsuario) async {
     final token = await obtenerToken();
-    final response = await http.post(
+    final response = await _http.post(
       Uri.parse('$baseUrl/mensajes/conversacion/$idUsuario'),
       headers: _headers(token: token),
     );
@@ -284,7 +315,7 @@ class ApiService {
 
   Future<List<Mensaje>> obtenerMensajes(int idConversacion) async {
     final token = await obtenerToken();
-    final response = await http.get(
+    final response = await _http.get(
       Uri.parse('$baseUrl/mensajes/conversacion/$idConversacion'),
       headers: _headers(token: token),
     );
@@ -295,7 +326,7 @@ class ApiService {
 
   Future<void> enviarMensaje(int idConversacion, String texto) async {
     final token = await obtenerToken();
-    final response = await http.post(
+    final response = await _http.post(
       Uri.parse('$baseUrl/mensajes/conversacion/$idConversacion/mensaje'),
       headers: _headers(token: token),
       body: jsonEncode({'texto': texto}),
@@ -305,7 +336,7 @@ class ApiService {
   }
 
   Future<List<Producto>> listarProductos() async {
-    final response = await http.get(
+    final response = await _http.get(
       Uri.parse('$baseUrl/tienda/productos'),
       headers: _headers(),
     );
@@ -315,7 +346,7 @@ class ApiService {
   }
 
   Future<Producto> obtenerProducto(int id) async {
-    final response = await http.get(
+    final response = await _http.get(
       Uri.parse('$baseUrl/tienda/productos/$id'),
       headers: _headers(),
     );
@@ -326,7 +357,7 @@ class ApiService {
 
   Future<Carrito> obtenerCarrito() async {
     final token = await obtenerToken();
-    final response = await http.get(
+    final response = await _http.get(
       Uri.parse('$baseUrl/carrito'),
       headers: _headers(token: token),
     );
@@ -337,13 +368,10 @@ class ApiService {
 
   Future<void> agregarAlCarrito(int idProducto, int cantidad) async {
     final token = await obtenerToken();
-    final response = await http.post(
+    final response = await _http.post(
       Uri.parse('$baseUrl/carrito/agregar'),
       headers: _headers(token: token),
-      body: jsonEncode({
-        'prod_id': idProducto,
-        'cantidad': cantidad,
-      }),
+      body: jsonEncode({'prod_id': idProducto, 'cantidad': cantidad}),
     );
 
     await _procesar(response);
@@ -351,7 +379,7 @@ class ApiService {
 
   Future<void> actualizarItem(int idItem, int cantidad) async {
     final token = await obtenerToken();
-    final response = await http.put(
+    final response = await _http.put(
       Uri.parse('$baseUrl/carrito/item/$idItem'),
       headers: _headers(token: token),
       body: jsonEncode({'cantidad': cantidad}),
@@ -362,7 +390,7 @@ class ApiService {
 
   Future<void> eliminarItem(int idItem) async {
     final token = await obtenerToken();
-    final response = await http.delete(
+    final response = await _http.delete(
       Uri.parse('$baseUrl/carrito/item/$idItem'),
       headers: _headers(token: token),
     );
@@ -380,7 +408,7 @@ class ApiService {
     required String cp,
   }) async {
     final token = await obtenerToken();
-    final response = await http.post(
+    final response = await _http.post(
       Uri.parse('$baseUrl/pedidos'),
       headers: _headers(token: token),
       body: jsonEncode({
@@ -400,12 +428,10 @@ class ApiService {
 
   Future<void> pagarPedido(int idPedido, bool aprobado) async {
     final token = await obtenerToken();
-    final response = await http.post(
+    final response = await _http.post(
       Uri.parse('$baseUrl/pedidos/$idPedido/pago'),
       headers: _headers(token: token),
-      body: jsonEncode({
-        'resultado': aprobado ? 'aprobado' : 'rechazado',
-      }),
+      body: jsonEncode({'resultado': aprobado ? 'aprobado' : 'rechazado'}),
     );
 
     await _procesar(response);
@@ -413,7 +439,7 @@ class ApiService {
 
   Future<List<Pedido>> listarPedidos() async {
     final token = await obtenerToken();
-    final response = await http.get(
+    final response = await _http.get(
       Uri.parse('$baseUrl/pedidos'),
       headers: _headers(token: token),
     );
@@ -424,7 +450,7 @@ class ApiService {
 
   Future<Pedido> obtenerPedido(int id) async {
     final token = await obtenerToken();
-    final response = await http.get(
+    final response = await _http.get(
       Uri.parse('$baseUrl/pedidos/$id'),
       headers: _headers(token: token),
     );
@@ -435,7 +461,7 @@ class ApiService {
 
   static String imagenUrlStatic(String? ruta) {
     if (ruta == null || ruta.isEmpty) {
-      return 'https://via.placeholder.com/800x450.png?text=Entre+Escenas';
+      return 'https://via.placeholder.com/800x450.png?text=The+Watchlist';
     }
 
     if (ruta.startsWith('http')) return ruta;

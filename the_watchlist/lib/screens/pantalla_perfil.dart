@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../state/auth_provider.dart';
+import '../services/api_service.dart';
+import '../services/auth_provider.dart';
 import 'pantalla_login.dart';
 import 'pantalla_pedidos.dart';
 
@@ -28,9 +29,7 @@ class PantallaPerfil extends StatelessWidget {
                 CircleAvatar(
                   radius: 44,
                   backgroundImage: usuario.avatar != null
-                      ? NetworkImage(
-                          ApiService.imagenUrlStatic(usuario.avatar),
-                        )
+                      ? NetworkImage(ApiService.imagenUrlStatic(usuario.avatar))
                       : null,
                   child: usuario.avatar == null
                       ? const Icon(Icons.person, size: 44)

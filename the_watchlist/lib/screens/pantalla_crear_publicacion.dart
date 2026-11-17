@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../api/api_service.dart';
+import '../services/api_service.dart';
 
 class PantallaCrearPublicacion extends StatefulWidget {
   const PantallaCrearPublicacion({super.key});
@@ -63,9 +63,8 @@ class _PantallaCrearPublicacionState extends State<PantallaCrearPublicacion> {
       if (!mounted) return;
       Navigator.pop(context);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
       setState(() => _cargando = false);
     }
@@ -86,19 +85,20 @@ class _PantallaCrearPublicacionState extends State<PantallaCrearPublicacion> {
             const SizedBox(height: 12),
             TextField(
               controller: _medioNombre,
-              decoration: const InputDecoration(
-                labelText: 'Pelicula o serie',
-              ),
+              decoration: const InputDecoration(labelText: 'Pelicula o serie'),
             ),
             const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: _medioTipo,
+                    initialValue: _medioTipo,
                     decoration: const InputDecoration(labelText: 'Tipo'),
                     items: const [
-                      DropdownMenuItem(value: 'pelicula', child: Text('Pelicula')),
+                      DropdownMenuItem(
+                        value: 'pelicula',
+                        child: Text('Pelicula'),
+                      ),
                       DropdownMenuItem(value: 'serie', child: Text('Serie')),
                     ],
                     onChanged: (valor) =>
@@ -108,15 +108,22 @@ class _PantallaCrearPublicacionState extends State<PantallaCrearPublicacion> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: _tipo,
+                    initialValue: _tipo,
                     decoration: const InputDecoration(labelText: 'Entrada'),
                     items: const [
                       DropdownMenuItem(value: 'resena', child: Text('Resena')),
-                      DropdownMenuItem(value: 'recomendacion', child: Text('Recomendacion')),
+                      DropdownMenuItem(
+                        value: 'recomendacion',
+                        child: Text('Recomendacion'),
+                      ),
                       DropdownMenuItem(value: 'teoria', child: Text('Teoria')),
-                      DropdownMenuItem(value: 'analisis', child: Text('Analisis')),
+                      DropdownMenuItem(
+                        value: 'analisis',
+                        child: Text('Analisis'),
+                      ),
                     ],
-                    onChanged: (valor) => setState(() => _tipo = valor ?? 'resena'),
+                    onChanged: (valor) =>
+                        setState(() => _tipo = valor ?? 'resena'),
                   ),
                 ),
               ],
@@ -153,8 +160,7 @@ class _PantallaCrearPublicacionState extends State<PantallaCrearPublicacion> {
             const SizedBox(height: 12),
             CheckboxListTile(
               value: _spoilers,
-              onChanged: (valor) =>
-                  setState(() => _spoilers = valor ?? false),
+              onChanged: (valor) => setState(() => _spoilers = valor ?? false),
               title: const Text('Esta publicacion contiene spoilers'),
             ),
             const SizedBox(height: 16),
