@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../state/auth_provider.dart';
-import 'pantalla_inicio.dart';
 
 class PantallaRegistro extends StatefulWidget {
   const PantallaRegistro({super.key});
@@ -20,6 +19,18 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
 
   Future<void> _registrarse() async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
+
+    if (_nombre.text.trim().isEmpty ||
+        _correo.text.trim().isEmpty ||
+        _password.text.isEmpty) {
+      setState(() => _error = 'Completa todos los campos');
+      return;
+    }
+
+    if (_password.text.length < 8) {
+      setState(() => _error = 'La contrasena debe tener al menos 8 caracteres');
+      return;
+    }
 
     if (_password.text != _confirmacion.text) {
       setState(() => _error = 'Las contrasenas no coinciden');

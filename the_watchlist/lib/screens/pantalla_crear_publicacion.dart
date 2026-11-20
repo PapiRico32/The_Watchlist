@@ -4,9 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../api/api_service.dart';
+import '../models/models.dart';
 
 class PantallaCrearPublicacion extends StatefulWidget {
-  const PantallaCrearPublicacion({super.key});
+  final Publicacion? publicacion;
+
+  const PantallaCrearPublicacion({super.key, this.publicacion});
 
   @override
   State<PantallaCrearPublicacion> createState() =>
@@ -25,6 +28,24 @@ class _PantallaCrearPublicacionState extends State<PantallaCrearPublicacion> {
   bool _spoilers = false;
   File? _imagen;
   bool _cargando = false;
+
+  bool get _editando => widget.publicacion != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final p = widget.publicacion;
+    if (p != null) {
+      _titulo.text = p.titulo;
+      _contenido.text = p.contenido;
+      _medioNombre.text = p.medioNombre;
+      _genero.text = p.genero ?? '';
+      _tags.text = p.tags ?? '';
+      _tipo = p.tipo;
+      _medioTipo = p.medioTipo;
+      _spoilers = p.spoilers;
+    }
+  }
 
   Future<void> _seleccionarImagen() async {
     final picker = ImagePicker();
@@ -47,18 +68,33 @@ class _PantallaCrearPublicacionState extends State<PantallaCrearPublicacion> {
 
     try {
       final api = ApiService();
-      await api.crearPublicacion(
-        titulo: _titulo.text,
-        contenido: _contenido.text,
-        medioNombre: _medioNombre.text,
-        tipo: _tipo,
-        medioTipo: _medioTipo,
-        genero: _genero.text,
-        tags: _tags.text,
-        spoilers: _spoilers,
-        borrador: borrador,
-        imagen: _imagen,
-      );
+      if (_editando) {
+        await api.actualizarPublicacion(
+          widget.publicacion!.id,
+          titulo: _titulo.text,
+          contenido: _contenido.text,
+          medioNombre: _medioNombre.text,
+          tipo: _tipo,
+          medioTipo: _medioTipo,
+          genero: _genero.text,
+          tags: _tags.text,
+          spoilers: _spoilers,
+          estatus: borrador ? 0 : 1,
+        );
+      } else {
+        await api.crearPublicacion(
+          titulo: _titulo.text,
+          contenido: _contenido.text,
+          medioNombre: _medioNombre.text,
+          tipo: _tipo,
+          medioTipo: _medioTipo,
+          genero: _genero.text,
+          tags: _tags.text,
+          spoilers: _spoilers,
+          borrador: borrador,
+          imagen: _imagen,
+        );
+      }
 
       if (!mounted) return;
       Navigator.pop(context);
@@ -74,7 +110,7 @@ class _PantallaCrearPublicacionState extends State<PantallaCrearPublicacion> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Crear publicacion')),
+      appBar: AppBar(title: Text(_editando ? 'Editar publicacion' : 'Crear publicacion')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -161,7 +197,7 @@ class _PantallaCrearPublicacionState extends State<PantallaCrearPublicacion> {
             ElevatedButton.icon(
               onPressed: _cargando ? null : () => _publicar(false),
               icon: const Icon(Icons.send),
-              label: const Text('Publicar'),
+              label: Text(_editando ? 'Actualizar' : 'Publicar'),
             ),
             const SizedBox(height: 8),
             OutlinedButton.icon(

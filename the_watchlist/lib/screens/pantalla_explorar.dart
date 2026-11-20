@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../api/api_service.dart';
+import '../models/models.dart';
 import '../widgets/tarjeta_publicacion.dart';
 import 'pantalla_publicacion.dart';
 

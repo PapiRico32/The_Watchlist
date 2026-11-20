@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../api/api_service.dart';
+import '../models/models.dart';
 import 'pantalla_pedido_detalle.dart';
 
 class PantallaPedidos extends StatefulWidget {
