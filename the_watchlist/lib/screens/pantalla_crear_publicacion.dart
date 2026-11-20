@@ -56,6 +56,7 @@ class _PantallaCrearPublicacionState extends State<PantallaCrearPublicacion> {
     }
   }
 
+  // Si falla al publicar, revisar multipart y endpoint /blog/publicaciones.
   Future<void> _publicar(bool borrador) async {
     if (_titulo.text.isEmpty || _contenido.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(

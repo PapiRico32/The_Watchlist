@@ -2,6 +2,7 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
+# Si falla la conexion, revisar DATABASE_URL y driver instalado.
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./the_watchlist.db")
 
 engine = create_engine(

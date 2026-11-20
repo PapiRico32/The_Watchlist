@@ -17,6 +17,7 @@ class ApiException implements Exception {
 }
 
 class ApiService {
+  // Para emulador Android usar 10.0.2.2; para dispositivo fisico usar IP de la PC.
   static const String baseUrl = 'http://10.0.2.2:8000';
 
   final FlutterSecureStorage _storage = const FlutterSecureStorage();

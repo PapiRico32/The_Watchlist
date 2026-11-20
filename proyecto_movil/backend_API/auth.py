@@ -13,6 +13,7 @@ from models import Usuario
 SECRET_KEY = os.getenv("SECRET_KEY", "the-watchlist-dev-secret")
 
 
+# Si falla autenticacion, revisar hash y SECRET_KEY.
 def hash_password(password: str) -> str:
     salt = os.urandom(16).hex()
     digest = hashlib.pbkdf2_hmac(

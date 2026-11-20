@@ -9,6 +9,7 @@ import 'pantalla_pedidos.dart';
 class PantallaPerfil extends StatelessWidget {
   const PantallaPerfil({super.key});
 
+  // Si el perfil no carga, revisar obtenerPerfil y token.
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context);

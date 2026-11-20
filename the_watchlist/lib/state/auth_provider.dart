@@ -13,6 +13,7 @@ class AuthProvider extends ChangeNotifier {
   Usuario? get usuario => _usuario;
   bool get cargando => _cargando;
 
+  // Si el login falla, revisar endpoint /auth/login y token guardado.
   Future<void> iniciarSesion(String correo, String password) async {
     _cargando = true;
     notifyListeners();

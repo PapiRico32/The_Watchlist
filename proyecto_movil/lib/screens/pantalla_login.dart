@@ -15,6 +15,7 @@ class _PantallaLoginState extends State<PantallaLogin> {
   final _password = TextEditingController();
   String? _error;
 
+  // Si no redirige, revisar ruta '/inicio' y AuthProvider.usuario.
   Future<void> _iniciarSesion() async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
 

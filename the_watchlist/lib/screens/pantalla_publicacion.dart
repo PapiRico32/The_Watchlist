@@ -31,6 +31,7 @@ class _PantallaPublicacionState extends State<PantallaPublicacion> {
     _cargar();
   }
 
+  // Si no carga la publicacion, revisar endpoint /blog/publicaciones/{id}.
   Future<void> _cargar() async {
     final api = ApiService();
 

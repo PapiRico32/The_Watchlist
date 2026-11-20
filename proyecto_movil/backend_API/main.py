@@ -30,6 +30,7 @@ app.add_middleware(
 
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
+# Si un endpoint no existe, revisar include_router aqui.
 app.include_router(auth.router)
 app.include_router(blog.router)
 app.include_router(mensajes.router)
