@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-import '../services/api_service.dart';
+import '../services/auth_provider.dart';
 
 import '../models/models.dart';
-import '../widgets/tarjeta_publicacion.dart';
+import '../widgets/post_card.dart';
+import '../widgets/admin_drawer.dart';
+import 'pantalla_admin.dart';
 import 'pantalla_explorar.dart';
 import 'pantalla_tienda.dart';
 import 'pantalla_mensajes.dart';
@@ -20,7 +23,7 @@ class PantallaInicio extends StatefulWidget {
 
 class _PantallaInicioState extends State<PantallaInicio> {
   int _indice = 0;
-  final List<Widget?> _pantallas = List<Widget?>.filled(5, null);
+  final List<Widget?> _pantallas = List<Widget?>.filled(6, null);
 
   @override
   void initState() {
@@ -35,6 +38,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
       2 => const PantallaTienda(),
       3 => const PantallaMensajes(),
       4 => const PantallaPerfil(),
+      5 => const PantallaAdmin(),
       _ => const SizedBox.shrink(),
     };
   }
@@ -47,7 +51,11 @@ class _PantallaInicioState extends State<PantallaInicio> {
       'Tienda',
       'Mensajes',
       'Mi perfil',
+      'Administración',
     ];
+
+    final auth = context.watch<AuthProvider>();
+    final usuario = auth.usuario;
 
     return Scaffold(
       appBar: AppBar(
@@ -64,16 +72,45 @@ class _PantallaInicioState extends State<PantallaInicio> {
                 ),
               ),
             ),
-          if (_indice == 2)
-            IconButton(
-              tooltip: 'Ver carrito',
-              icon: const Icon(Icons.shopping_cart_outlined),
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const PantallaCarrito()),
-              ),
-            ),
+          IconButton(
+            tooltip: 'Ver carrito',
+            icon: const Icon(Icons.shopping_cart_outlined),
+            onPressed: _abrirCarrito,
+          ),
         ],
+      ),
+      drawer: usuario == null ? null : AdminDrawer(
+        usuario: usuario,
+        opciones: [
+          _opcionMenu(Icons.home_outlined, 'Inicio', 0),
+          _opcionMenu(Icons.search, 'Explorar', 1),
+          _opcionMenu(Icons.shopping_bag_outlined, 'Tienda', 2),
+          ListTile(
+            leading: const Icon(Icons.shopping_cart_outlined),
+            title: const Text('Mi carrito'),
+            onTap: () {
+              Navigator.pop(context);
+              _abrirCarrito();
+            },
+          ),
+          _opcionMenu(Icons.chat_bubble_outline, 'Mensajes', 3),
+          _opcionMenu(Icons.person_outline, 'Mi perfil', 4),
+          if (auth.esAdministrador)
+            _opcionMenu(Icons.admin_panel_settings_outlined, 'Administración', 5),
+        ],
+        onLogout: () async {
+          Navigator.pop(context);
+          try {
+            await auth.cerrarSesion();
+            if (!context.mounted) return;
+            Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
+          } catch (error) {
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('No se pudo cerrar sesión: $error')),
+            );
+          }
+        },
       ),
       body: IndexedStack(
         index: _indice,
@@ -81,42 +118,32 @@ class _PantallaInicioState extends State<PantallaInicio> {
             .map((pantalla) => pantalla ?? const SizedBox.shrink())
             .toList(),
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _indice,
-        onDestinationSelected: (valor) {
-          setState(() {
-            _indice = valor;
-            _pantallas[valor] ??= _crearPantalla(valor);
-          });
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Inicio',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.search),
-            selectedIcon: Icon(Icons.search),
-            label: 'Explorar',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.shopping_bag_outlined),
-            selectedIcon: Icon(Icons.shopping_bag),
-            label: 'Tienda',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.chat_bubble_outline),
-            selectedIcon: Icon(Icons.chat_bubble),
-            label: 'Mensajes',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Perfil',
-          ),
-        ],
-      ),
+    );
+  }
+
+  void _seleccionar(int indice) {
+    setState(() {
+      _indice = indice;
+      _pantallas[indice] ??= _crearPantalla(indice);
+    });
+  }
+
+  void _abrirCarrito() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const PantallaCarrito()),
+    );
+  }
+
+  Widget _opcionMenu(IconData icono, String titulo, int indice) {
+    return ListTile(
+      leading: Icon(icono),
+      title: Text(titulo),
+      selected: _indice == indice,
+      onTap: () {
+        Navigator.pop(context);
+        _seleccionar(indice);
+      },
     );
   }
 }
@@ -142,7 +169,7 @@ class _ContenidoInicioState extends State<ContenidoInicio> {
   Future<void> _cargar() async {
     setState(() => _error = null);
     try {
-      final datos = await ApiService().listarPublicaciones();
+      final datos = await context.read<AuthProvider>().api.listarPublicaciones();
       if (!mounted) return;
       setState(() {
         _publicaciones = datos;
@@ -216,9 +243,9 @@ class _ContenidoInicioState extends State<ContenidoInicio> {
                   ..._publicaciones.map(
                     (publicacion) => Padding(
                       padding: const EdgeInsets.only(bottom: 16),
-                      child: TarjetaPublicacion(
-                        publicacion: publicacion,
-                        alPresionar: () {
+                      child: PostCard(
+                        post: publicacion,
+                        onTap: () {
                           Navigator.pushNamed(
                             context,
                             '/publicacion',

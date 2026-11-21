@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 
 import '../models/models.dart';
-import '../widgets/tarjeta_publicacion.dart';
+import '../widgets/category_chip.dart';
+import '../widgets/post_card.dart';
 import 'pantalla_publicacion.dart';
 
 class PantallaExplorar extends StatefulWidget {
@@ -78,27 +79,38 @@ class _PantallaExplorarState extends State<PantallaExplorar> {
                 onSubmitted: (_) => _buscar(),
               ),
               const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                children: [
+                  CategoryChip(
+                    text: 'Todo',
+                    selected: _tipo.isEmpty,
+                    onTap: () {
+                      setState(() => _tipo = '');
+                      _buscar();
+                    },
+                  ),
+                  CategoryChip(
+                    text: 'Películas',
+                    selected: _tipo == 'pelicula',
+                    onTap: () {
+                      setState(() => _tipo = 'pelicula');
+                      _buscar();
+                    },
+                  ),
+                  CategoryChip(
+                    text: 'Series',
+                    selected: _tipo == 'serie',
+                    onTap: () {
+                      setState(() => _tipo = 'serie');
+                      _buscar();
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
               Row(
                 children: [
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _tipo,
-                      decoration: const InputDecoration(labelText: 'Tipo'),
-                      items: const [
-                        DropdownMenuItem(value: '', child: Text('Todo')),
-                        DropdownMenuItem(
-                          value: 'pelicula',
-                          child: Text('Películas'),
-                        ),
-                        DropdownMenuItem(value: 'serie', child: Text('Series')),
-                      ],
-                      onChanged: (valor) {
-                        setState(() => _tipo = valor ?? '');
-                        _buscar();
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 12),
                   Expanded(
                     child: DropdownButtonFormField<String>(
                       initialValue: _orden,
@@ -171,9 +183,9 @@ class _PantallaExplorarState extends State<PantallaExplorar> {
                   itemBuilder: (_, index) {
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 16),
-                      child: TarjetaPublicacion(
-                        publicacion: _resultados[index],
-                        alPresionar: () {
+                      child: PostCard(
+                        post: _resultados[index],
+                        onTap: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(

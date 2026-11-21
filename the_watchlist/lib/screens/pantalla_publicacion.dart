@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../services/api_service.dart';
 import '../models/models.dart';
 import '../services/auth_provider.dart';
 
 import '../widgets/estrellas.dart';
+import '../widgets/contenido_publicacion.dart';
+import 'pantalla_conversacion.dart';
 import 'pantalla_crear_publicacion.dart';
 
 class PantallaPublicacion extends StatefulWidget {
@@ -37,7 +40,6 @@ class _PantallaPublicacionState extends State<PantallaPublicacion> {
     _comentario.dispose();
     super.dispose();
   }
-
 
   Future<void> _cargar() async {
     try {
@@ -74,6 +76,27 @@ class _PantallaPublicacionState extends State<PantallaPublicacion> {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(e.toString())));
       }
+    }
+  }
+
+  Future<void> _abrirConversacion(Publicacion publicacion) async {
+    try {
+      final id = await ApiService().iniciarConversacion(publicacion.idUsuario);
+      if (!mounted) return;
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PantallaConversacion(
+            id: id,
+            nombre: publicacion.autor ?? 'Usuario',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo abrir la conversación: $error')),
+      );
     }
   }
 
@@ -142,9 +165,8 @@ class _PantallaPublicacionState extends State<PantallaPublicacion> {
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
@@ -178,15 +200,13 @@ class _PantallaPublicacionState extends State<PantallaPublicacion> {
       final api = ApiService();
       await api.reportar(tipo, refId, motivoCtrl.text.trim());
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Reporte enviado')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Reporte enviado')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
@@ -245,19 +265,22 @@ class _PantallaPublicacionState extends State<PantallaPublicacion> {
             icon: const Icon(Icons.flag_outlined),
             onPressed: () => _reportar('publicacion', widget.id),
           ),
-          if (Provider.of<AuthProvider>(context).usuario?.nombre == publicacion.autor)
+          if (Provider.of<AuthProvider>(context).usuario?.nombre ==
+              publicacion.autor)
             IconButton(
               icon: const Icon(Icons.edit_outlined),
               onPressed: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => PantallaCrearPublicacion(publicacion: _publicacion),
+                    builder: (_) =>
+                        PantallaCrearPublicacion(publicacion: _publicacion),
                   ),
                 ).then((_) => _cargar());
               },
             ),
-          if (Provider.of<AuthProvider>(context).usuario?.nombre == publicacion.autor)
+          if (Provider.of<AuthProvider>(context).usuario?.nombre ==
+              publicacion.autor)
             IconButton(
               icon: const Icon(Icons.delete_outline),
               onPressed: _eliminar,
@@ -289,6 +312,15 @@ class _PantallaPublicacionState extends State<PantallaPublicacion> {
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
+            if (context.read<AuthProvider>().usuario?.id !=
+                publicacion.idUsuario)
+              TextButton.icon(
+                onPressed: () => _abrirConversacion(publicacion),
+                icon: const Icon(Icons.chat_outlined),
+                label: Text(
+                  'Enviar mensaje a ${publicacion.autor ?? "usuario"}',
+                ),
+              ),
             Row(
               children: [
                 Estrellas(promedio: publicacion.promedio),
@@ -313,7 +345,7 @@ class _PantallaPublicacionState extends State<PantallaPublicacion> {
               ],
             ),
             const SizedBox(height: 16),
-            Text(publicacion.contenido),
+            ContenidoPublicacion(contenido: publicacion.contenido),
             const SizedBox(height: 24),
             const Text(
               'Califica esta publicacion',
@@ -403,7 +435,8 @@ class _PantallaPublicacionState extends State<PantallaPublicacion> {
                           const Spacer(),
                           IconButton(
                             icon: const Icon(Icons.flag_outlined, size: 18),
-                            onPressed: () => _reportar('comentario', comentario.id),
+                            onPressed: () =>
+                                _reportar('comentario', comentario.id),
                           ),
                         ],
                       ),

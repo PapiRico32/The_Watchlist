@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-import '../services/api_service.dart';
+import '../services/auth_provider.dart';
 import 'pantalla_pedido_detalle.dart';
 
 class PantallaCheckout extends StatefulWidget {
@@ -20,12 +21,24 @@ class _PantallaCheckoutState extends State<PantallaCheckout> {
   final _cp = TextEditingController();
   bool _cargando = false;
 
+  @override
+  void dispose() {
+    _nombre.dispose();
+    _telefono.dispose();
+    _direccion.dispose();
+    _colonia.dispose();
+    _ciudad.dispose();
+    _estado.dispose();
+    _cp.dispose();
+    super.dispose();
+  }
+
   Future<void> _crearPedido() async {
-    if (_nombre.text.isEmpty ||
-        _direccion.text.isEmpty ||
-        _ciudad.text.isEmpty ||
-        _estado.text.isEmpty ||
-        _cp.text.isEmpty) {
+    if (_nombre.text.trim().isEmpty ||
+        _direccion.text.trim().isEmpty ||
+        _ciudad.text.trim().isEmpty ||
+        _estado.text.trim().isEmpty ||
+        _cp.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Completa los datos de entrega')),
       );
@@ -35,7 +48,7 @@ class _PantallaCheckoutState extends State<PantallaCheckout> {
     setState(() => _cargando = true);
 
     try {
-      final api = ApiService();
+      final api = context.read<AuthProvider>().api;
       final pedido = await api.crearPedido(
         nombreDest: _nombre.text,
         tel: _telefono.text,
@@ -54,11 +67,12 @@ class _PantallaCheckoutState extends State<PantallaCheckout> {
         ),
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString())),
       );
     } finally {
-      setState(() => _cargando = false);
+      if (mounted) setState(() => _cargando = false);
     }
   }
 

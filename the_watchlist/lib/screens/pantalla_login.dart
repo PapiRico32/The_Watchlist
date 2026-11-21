@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../services/auth_provider.dart';
-
+import '../widgets/auth_background.dart';
+import '../widgets/auth_card.dart';
+import '../widgets/custom_text_field.dart';
+import '../widgets/primary_button.dart';
 
 class PantallaLogin extends StatefulWidget {
   const PantallaLogin({super.key});
@@ -47,13 +50,15 @@ class _PantallaLoginState extends State<PantallaLogin> {
     final auth = Provider.of<AuthProvider>(context);
 
     return Scaffold(
-      body: SafeArea(
+      body: AuthBackground(
+        child: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 440),
-              child: Column(
+              child: AuthCard(
+                child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
@@ -96,29 +101,25 @@ class _PantallaLoginState extends State<PantallaLogin> {
                     ),
                   ),
                   const SizedBox(height: 34),
-                  TextField(
+                  CustomTextField(
                     controller: _correo,
+                    label: 'Correo electrónico',
+                    prefixIcon: Icons.alternate_email,
                     keyboardType: TextInputType.emailAddress,
                     textInputAction: TextInputAction.next,
                     autofillHints: const [AutofillHints.username],
                     onChanged: (_) => setState(() => _error = null),
-                    decoration: const InputDecoration(
-                      labelText: 'Correo electrónico',
-                      prefixIcon: Icon(Icons.alternate_email),
-                    ),
                   ),
                   const SizedBox(height: 14),
-                  TextField(
+                  CustomTextField(
                     controller: _password,
+                    label: 'Contraseña',
+                    prefixIcon: Icons.lock_outline,
                     obscureText: true,
                     textInputAction: TextInputAction.done,
                     autofillHints: const [AutofillHints.password],
                     onSubmitted: (_) => auth.cargando ? null : _iniciarSesion(),
                     onChanged: (_) => setState(() => _error = null),
-                    decoration: const InputDecoration(
-                      labelText: 'Contraseña',
-                      prefixIcon: Icon(Icons.lock_outline),
-                    ),
                   ),
                   if (_error != null) ...[
                     const SizedBox(height: 16),
@@ -139,23 +140,11 @@ class _PantallaLoginState extends State<PantallaLogin> {
                     ),
                   ],
                   const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: auth.cargando ? null : _iniciarSesion,
-                      icon: auth.cargando
-                          ? const SizedBox.square(
-                              dimension: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Icon(Icons.login_rounded),
-                      label: Text(
-                        auth.cargando ? 'Iniciando sesión…' : 'Iniciar sesión',
-                      ),
-                    ),
+                  PrimaryButton(
+                    text: auth.cargando ? 'Iniciando sesión…' : 'Iniciar sesión',
+                    icon: Icons.login_rounded,
+                    loading: auth.cargando,
+                    onPressed: _iniciarSesion,
                   ),
                   const SizedBox(height: 10),
                   TextButton(
@@ -164,7 +153,9 @@ class _PantallaLoginState extends State<PantallaLogin> {
                   ),
                 ],
               ),
+              ),
             ),
+          ),
           ),
         ),
       ),

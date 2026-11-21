@@ -20,7 +20,6 @@ class ApiException implements Exception {
 class _TimeoutClient extends http.BaseClient {
   final http.Client _client = http.Client();
 
-
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) {
     return _client
@@ -160,7 +159,7 @@ class ApiService {
     String? avatar,
   }) async {
     final token = await obtenerToken();
-    final response = await http.put(
+    final response = await _http.put(
       Uri.parse('$baseUrl/auth/me'),
       headers: _headers(token: token),
       body: jsonEncode({
@@ -309,11 +308,7 @@ class ApiService {
     final response = await http.post(
       Uri.parse('$baseUrl/blog/reportar'),
       headers: _headers(token: token),
-      body: jsonEncode({
-        'tipo': tipo,
-        'ref_id': refId,
-        'motivo': motivo,
-      }),
+      body: jsonEncode({'tipo': tipo, 'ref_id': refId, 'motivo': motivo}),
     );
 
     await _procesar(response);
@@ -373,6 +368,15 @@ class ApiService {
     await _procesar(response);
   }
 
+  Future<List<UsuarioMensaje>> buscarUsuariosMensajes(String nombre) async {
+    final token = await obtenerToken();
+    final uri = Uri.parse('$baseUrl/mensajes/usuarios')
+        .replace(queryParameters: {'q': nombre});
+    final response = await _http.get(uri, headers: _headers(token: token));
+    final datos = await _procesar(response) as List;
+    return datos.map((item) => UsuarioMensaje.fromJson(item)).toList();
+  }
+
   Future<List<Conversacion>> listarConversaciones() async {
     final token = await obtenerToken();
     final response = await _http.get(
@@ -382,6 +386,46 @@ class ApiService {
 
     final datos = await _procesar(response);
     return (datos as List).map((item) => Conversacion.fromJson(item)).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> listarAdministracion(
+    String seccion, {
+    int offset = 0,
+  }) async {
+    final token = await obtenerToken();
+    final response = await _http.get(
+      Uri.parse('$baseUrl/admin/$seccion')
+          .replace(queryParameters: {'offset': '$offset'}),
+      headers: _headers(token: token),
+    );
+    final datos = await _procesar(response) as List;
+    return datos.map((item) => Map<String, dynamic>.from(item as Map)).toList();
+  }
+
+  Future<void> accionAdministracion(
+    String ruta, {
+    required String metodo,
+    Map<String, dynamic>? datos,
+  }) async {
+    final token = await obtenerToken();
+    final uri = Uri.parse('$baseUrl/admin/$ruta');
+    final headers = _headers(token: token);
+    final body = datos == null ? null : jsonEncode(datos);
+    final http.Response response;
+    switch (metodo) {
+      case 'POST':
+        response = await _http.post(uri, headers: headers, body: body);
+        break;
+      case 'PUT':
+        response = await _http.put(uri, headers: headers, body: body);
+        break;
+      case 'DELETE':
+        response = await _http.delete(uri, headers: headers);
+        break;
+      default:
+        throw ArgumentError.value(metodo, 'metodo', 'Método no admitido');
+    }
+    await _procesar(response);
   }
 
   Future<int> iniciarConversacion(int idUsuario) async {

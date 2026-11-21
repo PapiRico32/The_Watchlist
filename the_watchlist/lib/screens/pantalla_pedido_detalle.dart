@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-import '../services/api_service.dart';
+import '../services/auth_provider.dart';
 
 import '../models/models.dart';
 
@@ -16,6 +17,8 @@ class PantallaPedidoDetalle extends StatefulWidget {
 class _PantallaPedidoDetalleState extends State<PantallaPedidoDetalle> {
   Pedido? _pedido;
   bool _cargando = true;
+  bool _pagando = false;
+  String? _error;
 
   @override
   void initState() {
@@ -24,21 +27,29 @@ class _PantallaPedidoDetalleState extends State<PantallaPedidoDetalle> {
   }
 
   Future<void> _cargar() async {
-    final api = ApiService();
+    final api = context.read<AuthProvider>().api;
 
     try {
       final pedido = await api.obtenerPedido(widget.id);
+      if (!mounted) return;
       setState(() {
         _pedido = pedido;
         _cargando = false;
+        _error = null;
       });
-    } catch (_) {
-      setState(() => _cargando = false);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _cargando = false;
+        _error = 'No se pudo cargar el pedido: $error';
+      });
     }
   }
 
   Future<void> _pagar(bool aprobado) async {
-    final api = ApiService();
+    if (_pagando) return;
+    final api = context.read<AuthProvider>().api;
+    setState(() => _pagando = true);
 
     try {
       await api.pagarPedido(widget.id, aprobado);
@@ -48,6 +59,8 @@ class _PantallaPedidoDetalleState extends State<PantallaPedidoDetalle> {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(e.toString())));
       }
+    } finally {
+      if (mounted) setState(() => _pagando = false);
     }
   }
 
@@ -58,6 +71,19 @@ class _PantallaPedidoDetalleState extends State<PantallaPedidoDetalle> {
     }
 
     final pedido = _pedido;
+
+    if (_error != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Pedido')),
+        body: Center(child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(_error!, textAlign: TextAlign.center),
+            TextButton(onPressed: _cargar, child: const Text('Reintentar')),
+          ],
+        )),
+      );
+    }
 
     if (pedido == null) {
       return const Scaffold(body: Center(child: Text('Pedido no encontrado')));
@@ -102,13 +128,13 @@ class _PantallaPedidoDetalleState extends State<PantallaPedidoDetalle> {
             Column(
               children: [
                 ElevatedButton.icon(
-                  onPressed: () => _pagar(true),
+                  onPressed: _pagando ? null : () => _pagar(true),
                   icon: const Icon(Icons.check_circle),
                   label: const Text('Simular pago aprobado'),
                 ),
                 const SizedBox(height: 8),
                 OutlinedButton.icon(
-                  onPressed: () => _pagar(false),
+                  onPressed: _pagando ? null : () => _pagar(false),
                   icon: const Icon(Icons.cancel),
                   label: const Text('Simular pago rechazado'),
                 ),

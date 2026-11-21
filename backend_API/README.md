@@ -1,5 +1,15 @@
 # Backend de The Watchlist
 
+## Estructura
+
+- `main.py`: aplicación, autenticación y endpoints.
+- `database.py`: conexión y sesiones de base de datos.
+- `models.py`: tablas de la base de datos.
+- `schemas.py`: datos de entrada y salida de la API.
+- `iniciar_backend.py`: inicio del servidor.
+- `db.sql`, `requirements.txt` y `test_pedidos_mensajes.py`: base de datos,
+  dependencias y pruebas.
+
 ## Requisitos
 
 - Python y las dependencias de `requirements.txt`.
@@ -42,7 +52,7 @@ tienes datos que quieras conservar sin hacer antes una copia de seguridad.**
 Con MySQL encendido y `blog_db` importada:
 
 ```powershell
-python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+python iniciar_backend.py
 ```
 
 Abre <http://127.0.0.1:8000/docs> para explorar los endpoints. La ruta
@@ -51,6 +61,26 @@ Abre <http://127.0.0.1:8000/docs> para explorar los endpoints. La ruta
 La app Android en emulador usa `http://10.0.2.2:8000`. En un teléfono físico,
 usa la IP local de esta computadora y permite el puerto 8000 en el firewall.
 
-Este backend incluye actualmente los routers de autenticación y publicaciones.
-Las funciones móviles de mensajes, tienda, carrito y pedidos necesitan routers
-que todavía no están presentes en este proyecto.
+La API sirve las imágenes de `uploads` y, si no encuentra un archivo allí,
+busca también en `C:\xampp\htdocs\aplicaciones-web\the-watchlist\uploads`
+cuando esa carpeta existe. Si la web está en otra ubicación, configura
+`WEB_UPLOADS_DIR` con la ruta absoluta de su carpeta `uploads` antes de iniciar
+la API. Las publicaciones creadas desde la app siguen guardándose en la carpeta
+local de la API; no se copian ni se eliminan archivos.
+
+Para compartir mensajes entre la web PHP y la app, ambas deben conectarse a la
+misma base `blog_db`. En la app se puede buscar personas por nombre desde
+Mensajes o iniciar una conversación desde una publicación; al abrirla se
+marcan como leídos los mensajes recibidos. La
+conversación móvil se actualiza cada cinco segundos mientras está abierta.
+
+El pago es simulado. Al aprobarlo se comprueban y descuentan las existencias,
+se registra el pago y se vacía el carrito. Un pago rechazado conserva el
+carrito. El envío cuesta $99 para subtotales menores de $500 y es gratis desde
+$500, igual que en la web.
+
+Para comprobar pedidos y búsqueda con una base temporal en memoria:
+
+```powershell
+python -m unittest test_pedidos_mensajes
+```

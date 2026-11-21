@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-import '../services/api_service.dart';
+import '../services/auth_provider.dart';
 
 import '../models/models.dart';
 import 'pantalla_checkout.dart';
@@ -15,6 +16,7 @@ class PantallaCarrito extends StatefulWidget {
 class _PantallaCarritoState extends State<PantallaCarrito> {
   Carrito? _carrito;
   bool _cargando = true;
+  String? _error;
 
   @override
   void initState() {
@@ -23,29 +25,43 @@ class _PantallaCarritoState extends State<PantallaCarrito> {
   }
 
   Future<void> _cargar() async {
-    final api = ApiService();
+    final api = context.read<AuthProvider>().api;
 
     try {
       final carrito = await api.obtenerCarrito();
+      if (!mounted) return;
       setState(() {
         _carrito = carrito;
         _cargando = false;
+        _error = null;
       });
-    } catch (_) {
-      setState(() => _cargando = false);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _cargando = false;
+        _error = 'No se pudo cargar el carrito: $error';
+      });
     }
   }
 
   Future<void> _cambiarCantidad(int idItem, int cantidad) async {
-    final api = ApiService();
-    await api.actualizarItem(idItem, cantidad);
-    await _cargar();
+    try {
+      await context.read<AuthProvider>().api.actualizarItem(idItem, cantidad);
+      await _cargar();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$error')));
+    }
   }
 
   Future<void> _eliminar(int idItem) async {
-    final api = ApiService();
-    await api.eliminarItem(idItem);
-    await _cargar();
+    try {
+      await context.read<AuthProvider>().api.eliminarItem(idItem);
+      await _cargar();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$error')));
+    }
   }
 
   @override
@@ -55,6 +71,19 @@ class _PantallaCarritoState extends State<PantallaCarrito> {
     }
 
     final carrito = _carrito;
+
+    if (_error != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Carrito')),
+        body: Center(child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(_error!, textAlign: TextAlign.center),
+            TextButton(onPressed: _cargar, child: const Text('Reintentar')),
+          ],
+        )),
+      );
+    }
 
     if (carrito == null || carrito.items.isEmpty) {
       return Scaffold(
@@ -127,13 +156,14 @@ class _PantallaCarritoState extends State<PantallaCarrito> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
+                    onPressed: () async {
+                      await Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (_) => const PantallaCheckout(),
                         ),
                       );
+                      if (mounted) await _cargar();
                     },
                     icon: const Icon(Icons.credit_card),
                     label: const Text('Continuar al pago'),

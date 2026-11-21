@@ -95,14 +95,19 @@ class PantallaPerfil extends StatelessWidget {
                     ),
                     ElevatedButton(
                       onPressed: () async {
-                        final api = ApiService();
-                        await api.actualizarPerfil(
-                          nombre: nombreCtrl.text,
-                          bio: bioCtrl.text,
-                          generos: generosCtrl.text,
-                        );
-                        if (context.mounted) Navigator.pop(context);
-                        await auth.cargarPerfil();
+                        try {
+                          await auth.guardarPerfil(
+                            nombre: nombreCtrl.text,
+                            bio: bioCtrl.text,
+                            generos: generosCtrl.text,
+                          );
+                          if (context.mounted) Navigator.pop(context);
+                        } catch (error) {
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('No se pudo guardar el perfil: $error')),
+                          );
+                        }
                       },
                       child: const Text('Guardar'),
                     ),

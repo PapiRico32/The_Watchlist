@@ -32,6 +32,7 @@ class Usuario {
 
 class Publicacion {
   final int id;
+  final int idUsuario;
   final String titulo;
   final String contenido;
   final String? imagen;
@@ -49,6 +50,7 @@ class Publicacion {
 
   Publicacion({
     required this.id,
+    required this.idUsuario,
     required this.titulo,
     required this.contenido,
     this.imagen,
@@ -68,6 +70,7 @@ class Publicacion {
   factory Publicacion.fromJson(Map<String, dynamic> json) {
     return Publicacion(
       id: json['id_blog'],
+      idUsuario: json['usr_id'],
       titulo: json['titulo'] ?? '',
       contenido: json['contenido'] ?? '',
       imagen: json['img'],
@@ -153,6 +156,20 @@ class Sticker {
   }
 }
 
+class UsuarioMensaje {
+  final int id;
+  final String nombre;
+  final String? avatar;
+
+  UsuarioMensaje({required this.id, required this.nombre, this.avatar});
+
+  factory UsuarioMensaje.fromJson(Map<String, dynamic> json) => UsuarioMensaje(
+    id: json['id_usr'] as int,
+    nombre: json['nom_usr'] as String,
+    avatar: json['avatar'] as String?,
+  );
+}
+
 class Conversacion {
   final int id;
   final int otroId;
@@ -186,6 +203,7 @@ class Mensaje {
   final String texto;
   final bool leido;
   final String fecha;
+  final String? stickerNombre;
 
   Mensaje({
     required this.id,
@@ -194,6 +212,7 @@ class Mensaje {
     required this.texto,
     required this.leido,
     required this.fecha,
+    this.stickerNombre,
   });
 
   factory Mensaje.fromJson(Map<String, dynamic> json) {
@@ -204,6 +223,7 @@ class Mensaje {
       texto: json['texto'] ?? '',
       leido: json['leido'] == true,
       fecha: json['fecha'] ?? '',
+      stickerNombre: json['sticker_nombre'],
     );
   }
 }

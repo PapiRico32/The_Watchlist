@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../services/auth_provider.dart';
-
+import '../widgets/auth_background.dart';
+import '../widgets/auth_card.dart';
+import '../widgets/custom_text_field.dart';
+import '../widgets/primary_button.dart';
 
 class PantallaRegistro extends StatefulWidget {
   const PantallaRegistro({super.key});
@@ -17,6 +20,15 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
   final _password = TextEditingController();
   final _confirmacion = TextEditingController();
   String? _error;
+
+  @override
+  void dispose() {
+    _nombre.dispose();
+    _correo.dispose();
+    _password.dispose();
+    _confirmacion.dispose();
+    super.dispose();
+  }
 
   Future<void> _registrarse() async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
@@ -48,7 +60,7 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/inicio');
     } catch (e) {
-      setState(() => _error = e.toString());
+      if (mounted) setState(() => _error = e.toString());
     }
   }
 
@@ -58,57 +70,53 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Crear cuenta')),
-      body: SingleChildScrollView(
+      body: AuthBackground(
+        child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
+        child: Center(
+          child: AuthCard(
         child: Column(
           children: [
-            TextField(
+            CustomTextField(
               controller: _nombre,
-              decoration: const InputDecoration(
-                labelText: 'Nombre de usuario',
-                prefixIcon: Icon(Icons.person_outline),
-              ),
+              label: 'Nombre de usuario',
+              prefixIcon: Icons.person_outline,
             ),
             const SizedBox(height: 16),
-            TextField(
+            CustomTextField(
               controller: _correo,
+              label: 'Correo electronico',
+              prefixIcon: Icons.alternate_email,
               keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(
-                labelText: 'Correo electronico',
-                prefixIcon: Icon(Icons.alternate_email),
-              ),
             ),
             const SizedBox(height: 16),
-            TextField(
+            CustomTextField(
               controller: _password,
+              label: 'Contrasena',
+              prefixIcon: Icons.lock_outline,
               obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Contrasena',
-                prefixIcon: Icon(Icons.lock_outline),
-              ),
             ),
             const SizedBox(height: 16),
-            TextField(
+            CustomTextField(
               controller: _confirmacion,
+              label: 'Confirmar contrasena',
+              prefixIcon: Icons.lock_outline,
               obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Confirmar contrasena',
-                prefixIcon: Icon(Icons.lock_outline),
-              ),
             ),
             const SizedBox(height: 20),
             if (_error != null)
               Text(_error!, style: const TextStyle(color: Colors.redAccent)),
             const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: auth.cargando ? null : _registrarse,
-                icon: const Icon(Icons.person_add),
-                label: const Text('Crear cuenta'),
-              ),
+            PrimaryButton(
+              text: 'Crear cuenta',
+              icon: Icons.person_add,
+              loading: auth.cargando,
+              onPressed: _registrarse,
             ),
           ],
+        ),
+        ),
+        ),
         ),
       ),
     );

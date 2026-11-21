@@ -1,5 +1,5 @@
-from pydantic import BaseModel
-from typing import Optional, List
+from pydantic import BaseModel, Field
+from typing import Optional, List, Literal
 from datetime import datetime
 
 
@@ -140,6 +140,7 @@ class MensajeOut(BaseModel):
     leido: bool
     fecha: datetime
     autor: Optional[str] = None
+    sticker_nombre: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -181,11 +182,11 @@ class CarritoOut(BaseModel):
 
 class CarritoAgregar(BaseModel):
     prod_id: int
-    cantidad: int = 1
+    cantidad: int = Field(default=1, ge=1)
 
 
 class CarritoActualizar(BaseModel):
-    cantidad: int
+    cantidad: int = Field(ge=1)
 
 
 class PedidoCrear(BaseModel):
@@ -212,7 +213,7 @@ class PedidoOut(BaseModel):
 
 
 class PagoSimulado(BaseModel):
-    resultado: str
+    resultado: Literal["aprobado", "rechazado"]
 
 
 class ProductoCrear(BaseModel):
@@ -236,3 +237,23 @@ class ReporteCrear(BaseModel):
     tipo: str
     ref_id: int
     motivo: str
+
+
+class EstadoAdmin(BaseModel):
+    estatus: Literal[0, 1]
+
+
+class EnvioAdmin(BaseModel):
+    estado_envio: Literal["confirmado", "preparacion", "enviado", "entregado"]
+
+
+class ReporteAdmin(BaseModel):
+    accion: Literal["ocultar", "descartar"]
+
+
+class ProductoAdmin(BaseModel):
+    nombre: str = Field(min_length=1, max_length=150)
+    descripcion: Optional[str] = None
+    precio: float = Field(gt=0, allow_inf_nan=False)
+    categoria: Literal["poster", "taza", "playera", "libreta", "accesorio"]
+    stock: int = Field(ge=0)

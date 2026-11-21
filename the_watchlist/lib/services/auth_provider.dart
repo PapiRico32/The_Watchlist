@@ -98,6 +98,26 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> guardarPerfil({
+    required String nombre,
+    required String bio,
+    required String generos,
+  }) async {
+    _error = null;
+    try {
+      _usuario = await api.actualizarPerfil(
+        nombre: nombre,
+        bio: bio,
+        generos: generos,
+      );
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      rethrow;
+    }
+  }
+
   Future<void> cerrarSesion() async {
     _cargando = true;
     _error = null;
