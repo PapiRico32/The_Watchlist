@@ -3,12 +3,14 @@ import 'package:provider/provider.dart';
 
 import '../services/api_service.dart';
 import '../services/auth_provider.dart';
+
 import 'pantalla_login.dart';
 import 'pantalla_pedidos.dart';
 
 class PantallaPerfil extends StatelessWidget {
   const PantallaPerfil({super.key});
 
+  // Si el perfil no carga, revisar obtenerPerfil y token.
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context);
@@ -54,6 +56,62 @@ class PantallaPerfil extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
+        ListTile(
+          leading: const Icon(Icons.edit),
+          title: const Text('Editar perfil'),
+          onTap: () async {
+            final nombreCtrl = TextEditingController(text: usuario.nombre);
+            final bioCtrl = TextEditingController(text: usuario.bio ?? '');
+            final generosCtrl =
+                TextEditingController(text: usuario.generos ?? '');
+
+            await showDialog(
+              context: context,
+              builder: (context) {
+                return AlertDialog(
+                  title: const Text('Editar perfil'),
+                  content: SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        TextField(
+                          controller: nombreCtrl,
+                          decoration: const InputDecoration(labelText: 'Nombre'),
+                        ),
+                        TextField(
+                          controller: bioCtrl,
+                          decoration: const InputDecoration(labelText: 'Biografia'),
+                        ),
+                        TextField(
+                          controller: generosCtrl,
+                          decoration: const InputDecoration(labelText: 'Generos favoritos'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancelar'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () async {
+                        final api = ApiService();
+                        await api.actualizarPerfil(
+                          nombre: nombreCtrl.text,
+                          bio: bioCtrl.text,
+                          generos: generosCtrl.text,
+                        );
+                        if (context.mounted) Navigator.pop(context);
+                        await auth.cargarPerfil();
+                      },
+                      child: const Text('Guardar'),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+        ),
         ListTile(
           leading: const Icon(Icons.receipt),
           title: const Text('Mis pedidos'),

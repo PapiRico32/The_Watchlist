@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../services/auth_provider.dart';
 
+
 class PantallaLogin extends StatefulWidget {
   const PantallaLogin({super.key});
 
@@ -22,8 +23,14 @@ class _PantallaLoginState extends State<PantallaLogin> {
     super.dispose();
   }
 
+
   Future<void> _iniciarSesion() async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
+
+    if (_correo.text.trim().isEmpty || _password.text.isEmpty) {
+      setState(() => _error = 'Completa correo y contrasena');
+      return;
+    }
 
     try {
       await auth.iniciarSesion(_correo.text.trim(), _password.text);

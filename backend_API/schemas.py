@@ -1,23 +1,23 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
 
 
 class UsuarioRegistro(BaseModel):
     nom_usr: str
-    mail: EmailStr
+    mail: str
     password: str
 
 
 class UsuarioLogin(BaseModel):
-    mail: EmailStr
+    mail: str
     password: str
 
 
 class UsuarioOut(BaseModel):
     id_usr: int
     nom_usr: str
-    mail: EmailStr
+    mail: str
     avatar: Optional[str] = None
     bio: Optional[str] = None
     generos: Optional[str] = None
@@ -26,6 +26,12 @@ class UsuarioOut(BaseModel):
     class Config:
         from_attributes = True
 
+
+class UsuarioActualizar(BaseModel):
+    nom_usr: Optional[str] = None
+    bio: Optional[str] = None
+    generos: Optional[str] = None
+    avatar: Optional[str] = None
 
 class Token(BaseModel):
     access_token: str

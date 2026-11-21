@@ -1,3 +1,5 @@
+import hashlib
+import hmac
 import logging
 import os
 import secrets
@@ -9,6 +11,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -37,6 +40,15 @@ def hash_password(password: str) -> str:
 
 
 def verificar_password(password: str, password_hash: str) -> bool:
+    if password_hash.startswith("pbkdf2$"):
+        try:
+            _, salt, digest = password_hash.split("$", 2)
+        except ValueError:
+            return False
+        calculado = hashlib.pbkdf2_hmac(
+            "sha256", password.encode("utf-8"), salt.encode("utf-8"), 100000
+        ).hex()
+        return hmac.compare_digest(calculado, digest)
     return password_context.verify(password, password_hash)
 
 
@@ -70,5 +82,6 @@ def get_current_user(
     usuario = db.query(Usuario).filter(Usuario.id_usr == id_usuario).first()
     if usuario is None or usuario.estatus == 0:
         raise no_autorizado
+
 
     return usuario

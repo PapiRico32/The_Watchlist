@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -18,6 +19,7 @@ class ApiException implements Exception {
 
 class _TimeoutClient extends http.BaseClient {
   final http.Client _client = http.Client();
+
 
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) {
@@ -151,6 +153,28 @@ class ApiService {
     return Usuario.fromJson(datos);
   }
 
+  Future<Usuario> actualizarPerfil({
+    String? nombre,
+    String? bio,
+    String? generos,
+    String? avatar,
+  }) async {
+    final token = await obtenerToken();
+    final response = await http.put(
+      Uri.parse('$baseUrl/auth/me'),
+      headers: _headers(token: token),
+      body: jsonEncode({
+        if (nombre != null) 'nom_usr': nombre,
+        if (bio != null) 'bio': bio,
+        if (generos != null) 'generos': generos,
+        if (avatar != null) 'avatar': avatar,
+      }),
+    );
+
+    final datos = await _procesar(response);
+    return Usuario.fromJson(datos);
+  }
+
   Future<List<Publicacion>> listarPublicaciones({
     String? q,
     String? tipo,
@@ -235,6 +259,64 @@ class ApiService {
 
     final datos = await _procesar(response);
     return Publicacion.fromJson(datos);
+  }
+
+  Future<Publicacion> actualizarPublicacion(
+    int id, {
+    String? titulo,
+    String? contenido,
+    String? medioNombre,
+    String? tipo,
+    String? medioTipo,
+    String? genero,
+    String? tags,
+    bool? spoilers,
+    int? estatus,
+  }) async {
+    final token = await obtenerToken();
+    final response = await http.put(
+      Uri.parse('$baseUrl/blog/publicaciones/$id'),
+      headers: _headers(token: token),
+      body: jsonEncode({
+        if (titulo != null) 'titulo': titulo,
+        if (contenido != null) 'contenido': contenido,
+        if (medioNombre != null) 'medio_nombre': medioNombre,
+        if (tipo != null) 'tipo': tipo,
+        if (medioTipo != null) 'medio_tipo': medioTipo,
+        if (genero != null) 'genero': genero,
+        if (tags != null) 'tags': tags,
+        if (spoilers != null) 'spoilers': spoilers,
+        if (estatus != null) 'estatus': estatus,
+      }),
+    );
+
+    final datos = await _procesar(response);
+    return Publicacion.fromJson(datos);
+  }
+
+  Future<void> eliminarPublicacion(int id) async {
+    final token = await obtenerToken();
+    final response = await http.delete(
+      Uri.parse('$baseUrl/blog/publicaciones/$id'),
+      headers: _headers(token: token),
+    );
+
+    await _procesar(response);
+  }
+
+  Future<void> reportar(String tipo, int refId, String motivo) async {
+    final token = await obtenerToken();
+    final response = await http.post(
+      Uri.parse('$baseUrl/blog/reportar'),
+      headers: _headers(token: token),
+      body: jsonEncode({
+        'tipo': tipo,
+        'ref_id': refId,
+        'motivo': motivo,
+      }),
+    );
+
+    await _procesar(response);
   }
 
   Future<void> valorar(int idPublicacion, int estrellas) async {

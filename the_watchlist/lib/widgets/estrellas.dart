@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 
 class Estrellas extends StatelessWidget {
   final double promedio;
+  final double size;
 
-  const Estrellas({super.key, required this.promedio});
+  const Estrellas({super.key, required this.promedio, this.size = 18});
 
   @override
   Widget build(BuildContext context) {
@@ -25,9 +26,10 @@ class Estrellas extends StatelessWidget {
             icono = Icons.star_outline_rounded;
           }
 
-          return Icon(icono, size: 18, color: const Color(0xFFFBBF24));
+          return Icon(icono, size: size, color: const Color(0xFFFBBF24));
         }),
       ),
+
     );
   }
 }

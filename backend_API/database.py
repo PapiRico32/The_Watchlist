@@ -3,6 +3,7 @@ from collections.abc import Generator
 
 from dotenv import load_dotenv
 from sqlalchemy import URL, create_engine
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 load_dotenv()
@@ -24,8 +25,10 @@ def _crear_url_base_datos() -> str | URL:
     )
 
 
+_database_url = _crear_url_base_datos()
 engine = create_engine(
-    _crear_url_base_datos(),
+    _database_url,
+    connect_args={"check_same_thread": False} if make_url(_database_url).get_backend_name() == "sqlite" else {},
     pool_pre_ping=True,
     pool_recycle=1800,
 )
@@ -40,8 +43,15 @@ Base = declarative_base()
 
 
 def get_db() -> Generator:
+
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
+
+
+
+def init_db():
+    Base.metadata.create_all(bind=engine)
+

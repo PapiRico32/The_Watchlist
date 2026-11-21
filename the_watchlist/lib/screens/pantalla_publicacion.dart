@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
 import '../models/models.dart';
+import '../services/auth_provider.dart';
+
 import '../widgets/estrellas.dart';
+import 'pantalla_crear_publicacion.dart';
 
 class PantallaPublicacion extends StatefulWidget {
   final int id;
@@ -34,6 +37,7 @@ class _PantallaPublicacionState extends State<PantallaPublicacion> {
     _comentario.dispose();
     super.dispose();
   }
+
 
   Future<void> _cargar() async {
     try {
@@ -111,6 +115,82 @@ class _PantallaPublicacionState extends State<PantallaPublicacion> {
     }
   }
 
+  Future<void> _eliminar() async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar publicacion'),
+        content: const Text('Esta accion no se puede deshacer.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmar != true) return;
+
+    try {
+      final api = ApiService();
+      await api.eliminarPublicacion(widget.id);
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      }
+    }
+  }
+
+  Future<void> _reportar(String tipo, int refId) async {
+    final motivoCtrl = TextEditingController();
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reportar'),
+        content: TextField(
+          controller: motivoCtrl,
+          decoration: const InputDecoration(labelText: 'Motivo'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Enviar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmar != true || motivoCtrl.text.trim().isEmpty) return;
+
+    try {
+      final api = ApiService();
+      await api.reportar(tipo, refId, motivoCtrl.text.trim());
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Reporte enviado')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_cargando) {
@@ -158,7 +238,32 @@ class _PantallaPublicacionState extends State<PantallaPublicacion> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: Text(publicacion.medioNombre)),
+      appBar: AppBar(
+        title: Text(publicacion.medioNombre),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.flag_outlined),
+            onPressed: () => _reportar('publicacion', widget.id),
+          ),
+          if (Provider.of<AuthProvider>(context).usuario?.nombre == publicacion.autor)
+            IconButton(
+              icon: const Icon(Icons.edit_outlined),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => PantallaCrearPublicacion(publicacion: _publicacion),
+                  ),
+                ).then((_) => _cargar());
+              },
+            ),
+          if (Provider.of<AuthProvider>(context).usuario?.nombre == publicacion.autor)
+            IconButton(
+              icon: const Icon(Icons.delete_outline),
+              onPressed: _eliminar,
+            ),
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -289,9 +394,18 @@ class _PantallaPublicacionState extends State<PantallaPublicacion> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        comentario.autor ?? 'Usuario',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      Row(
+                        children: [
+                          Text(
+                            comentario.autor ?? 'Usuario',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            icon: const Icon(Icons.flag_outlined, size: 18),
+                            onPressed: () => _reportar('comentario', comentario.id),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 6),
                       if (comentario.spoiler)

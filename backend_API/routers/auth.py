@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from database import get_db
 from models import Usuario
-from schemas import UsuarioRegistro, UsuarioLogin, Token, UsuarioOut
+from schemas import UsuarioRegistro, UsuarioLogin, Token, UsuarioOut, UsuarioActualizar
 from auth import hash_password, verificar_password, crear_token, get_current_user
 
 router = APIRouter(prefix="/auth", tags=["Autenticacion"])
@@ -37,7 +37,7 @@ def registrar(datos: UsuarioRegistro, db: Session = Depends(get_db)):
 
     return Token(
         access_token=token,
-        usuario=UsuarioOut.from_orm(usuario)
+        usuario=UsuarioOut.model_validate(usuario)
     )
 
 
@@ -56,9 +56,29 @@ def login(datos: UsuarioLogin, db: Session = Depends(get_db)):
 
     token = crear_token({"sub": str(usuario.id_usr)})
 
-    return Token(access_token=token, usuario=UsuarioOut.from_orm(usuario))
+    return Token(access_token=token, usuario=UsuarioOut.model_validate(usuario))
 
 
 @router.get("/me", response_model=UsuarioOut)
 def me(usuario: Usuario = Depends(get_current_user)):
+    return usuario
+
+
+@router.put("/me", response_model=UsuarioOut)
+def actualizar_perfil(
+    datos: UsuarioActualizar,
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(get_current_user),
+):
+    if datos.nom_usr is not None:
+        usuario.nom_usr = datos.nom_usr
+    if datos.bio is not None:
+        usuario.bio = datos.bio
+    if datos.generos is not None:
+        usuario.generos = datos.generos
+    if datos.avatar is not None:
+        usuario.avatar = datos.avatar
+
+    db.commit()
+    db.refresh(usuario)
     return usuario
