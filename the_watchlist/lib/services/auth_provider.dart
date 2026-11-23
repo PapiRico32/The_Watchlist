@@ -1,3 +1,4 @@
+/// Estado de autenticación compartido por la aplicación Flutter.
 import 'package:flutter/foundation.dart';
 
 import 'api_service.dart';

@@ -1,3 +1,4 @@
+/// Cliente principal de acceso a todos los recursos de la API.
 import 'dart:async';
 
 import 'dart:convert';

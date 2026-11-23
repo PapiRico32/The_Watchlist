@@ -1,3 +1,4 @@
+/// Contenedor visual reutilizable para los formularios de autenticación.
 import 'package:flutter/material.dart';
 
 class AuthCard extends StatelessWidget {

@@ -1,3 +1,4 @@
+/// Pantalla con el historial de pedidos del usuario.
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 

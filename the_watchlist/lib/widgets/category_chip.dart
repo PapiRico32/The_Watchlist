@@ -1,3 +1,4 @@
+/// Etiqueta visual para mostrar una categoría de la tienda.
 import 'package:flutter/material.dart';
 
 class CategoryChip extends StatelessWidget {

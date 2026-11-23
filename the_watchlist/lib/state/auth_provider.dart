@@ -1,4 +1,5 @@
 // Estado de sesion. Si el usuario aparece null, revisar guardarToken en ApiService.
+/// Implementación de estado de autenticación utilizada por la interfaz.
 import 'package:flutter/foundation.dart';
 
 import '../api/api_service.dart';

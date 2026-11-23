@@ -1,3 +1,4 @@
+/// Contenedor reutilizable para representar el contenido de una publicación.
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';

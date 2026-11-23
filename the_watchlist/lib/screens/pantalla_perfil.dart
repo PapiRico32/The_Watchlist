@@ -1,3 +1,4 @@
+/// Pantalla con los datos y opciones del perfil del usuario.
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 

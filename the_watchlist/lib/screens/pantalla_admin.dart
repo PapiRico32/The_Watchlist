@@ -1,17 +1,23 @@
+/// Pantalla administrativa para gestionar usuarios y recursos del sistema.
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../services/auth_provider.dart';
 
+/// Pantalla principal del panel de administración.
+///
+/// Comprueba el rol del usuario y crea una pestaña por cada sección administrable.
 class PantallaAdmin extends StatelessWidget {
   const PantallaAdmin({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // Escucha al proveedor para mostrar o ocultar la pantalla según la sesión.
     if (!context.watch<AuthProvider>().esAdministrador) {
       return const Center(child: Text('Se requiere una cuenta administradora.'));
     }
 
+    // DefaultTabController permite cambiar de sección sin crear rutas nuevas.
     return DefaultTabController(
       length: 6,
       child: Column(
@@ -30,6 +36,7 @@ class PantallaAdmin extends StatelessWidget {
           Expanded(
             child: TabBarView(
               children: [
+                // Cada pestaña usa el nombre de sección que espera la API.
                 for (final seccion in const [
                   'usuarios',
                   'publicaciones',
@@ -48,6 +55,7 @@ class PantallaAdmin extends StatelessWidget {
   }
 }
 
+/// Widget con el listado y las acciones de una sección administrativa.
 class _ListadoAdmin extends StatefulWidget {
   const _ListadoAdmin({required this.seccion});
 
@@ -58,23 +66,33 @@ class _ListadoAdmin extends StatefulWidget {
 }
 
 class _ListadoAdminState extends State<_ListadoAdmin> {
+  // Solicitud asincrónica que FutureBuilder observa para pintar la interfaz.
   late Future<List<Map<String, dynamic>>> _datos;
+  // Evita ejecutar varias operaciones administrativas al mismo tiempo.
   bool _ocupado = false;
+  // Página actual para las secciones que usan paginación.
   int _pagina = 0;
+  // Solo publicaciones y comentarios reciben paginación de 50 elementos.
   bool get _paginado => widget.seccion == 'publicaciones' || widget.seccion == 'comentarios';
 
   @override
   void initState() {
     super.initState();
+    // Carga automáticamente el primer conjunto de datos al abrir la pestaña.
     _recargar();
   }
 
+  /// Obtiene nuevamente los elementos de la sección actual.
   void _recargar() {
     setState(() {
       _datos = context.read<AuthProvider>().api.listarAdministracion(widget.seccion, offset: _pagina * 50);
     });
   }
 
+  /// Ejecuta una modificación en el backend y actualiza la lista.
+  ///
+  /// [ruta] identifica el recurso; [metodo] indica el verbo HTTP;
+  /// [datos] contiene el cuerpo opcional y [confirmacion] pide validación.
   Future<void> _accion(
     String ruta, {
     required String metodo,
@@ -82,6 +100,7 @@ class _ListadoAdminState extends State<_ListadoAdmin> {
     String? confirmacion,
   }) async {
     if (_ocupado) return;
+    // Muestra una confirmación antes de ejecutar acciones destructivas o sensibles.
     if (confirmacion != null) {
       final confirmada = await showDialog<bool>(
         context: context,
@@ -96,6 +115,7 @@ class _ListadoAdminState extends State<_ListadoAdmin> {
       );
       if (confirmada != true || !mounted) return;
     }
+    // Bloquea los controles mientras se realiza la llamada al servidor.
     setState(() => _ocupado = true);
     try {
       await context.read<AuthProvider>().api.accionAdministracion(
@@ -104,6 +124,7 @@ class _ListadoAdminState extends State<_ListadoAdmin> {
         datos: datos,
       );
       if (!mounted) return;
+      // Recarga para reflejar inmediatamente el resultado de la operación.
       _recargar();
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cambio guardado')));
     } catch (error) {
@@ -114,12 +135,14 @@ class _ListadoAdminState extends State<_ListadoAdmin> {
     }
   }
 
+  /// Abre el formulario para crear o editar un producto.
   Future<void> _producto([Map<String, dynamic>? producto]) async {
     final datos = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (_) => _FormularioProducto(producto: producto),
     );
     if (datos == null || !mounted) return;
+    // Sin id se crea un producto; con id se actualiza el registro existente.
     final id = producto?['id_prod'];
     await _accion(
       id == null ? 'productos' : 'productos/$id',
@@ -128,11 +151,14 @@ class _ListadoAdminState extends State<_ListadoAdmin> {
     );
   }
 
+  /// Construye la tarjeta o fila adecuada para cada sección administrativa.
   Widget _tarjeta(Map<String, dynamic> item) {
     final seccion = widget.seccion;
+    // Los productos identifican sus registros con id_prod; las otras con id.
     final id = (seccion == 'productos' ? item['id_prod'] : item['id']) as int;
     switch (seccion) {
       case 'usuarios':
+        // El valor 1 representa una cuenta activa.
         final activo = item['estatus'] == 1;
         return ListTile(
           title: Text(item['nombre'] as String),
@@ -148,6 +174,7 @@ class _ListadoAdminState extends State<_ListadoAdmin> {
         );
       case 'publicaciones':
       case 'comentarios':
+        // Ambas secciones muestran el contenido y permiten eliminarlo.
         return ListTile(
           title: Text((seccion == 'publicaciones' ? item['titulo'] : item['texto']) as String),
           subtitle: Text('Por ${item['autor']}${seccion == 'comentarios' ? ' · ${item['publicacion']}' : ''}'),
@@ -181,6 +208,7 @@ class _ListadoAdminState extends State<_ListadoAdmin> {
           ),
         );
       case 'pedidos':
+        // Presenta el importe, el pago y el estado de envío del pedido.
         return ListTile(
           title: Text('Pedido #$id · ${item['cliente']}'),
           subtitle: Text('Total: \$${item['total']} · Pago: ${item['estado_pago']}\nEnvío: ${item['estado_envio']}'),
@@ -191,12 +219,14 @@ class _ListadoAdminState extends State<_ListadoAdmin> {
               'pedidos/$id/envio', metodo: 'PUT', datos: {'estado_envio': estado},
             ),
             itemBuilder: (_) => [
+              // Cada opción representa una fase posible del proceso de envío.
               for (final estado in const ['confirmado', 'preparacion', 'enviado', 'entregado'])
                 PopupMenuItem(value: estado, child: Text(estado)),
             ],
           ),
         );
       case 'reportes':
+        // Los reportes resueltos no ofrecen nuevas acciones.
         return ListTile(
           title: Text('${item['tipo']} #${item['referencia']} · ${item['estatus']}'),
           subtitle: Text('${item['motivo']}\nPor ${item['autor']}'),
@@ -223,6 +253,7 @@ class _ListadoAdminState extends State<_ListadoAdmin> {
   Widget build(BuildContext context) {
     return Column(
       children: [
+        // Únicamente la sección de productos permite agregar registros.
         if (widget.seccion == 'productos')
           Padding(
             padding: const EdgeInsets.all(8),
@@ -236,9 +267,11 @@ class _ListadoAdminState extends State<_ListadoAdmin> {
           child: FutureBuilder<List<Map<String, dynamic>>>(
             future: _datos,
             builder: (context, snapshot) {
+              // Mientras llega la respuesta se muestra una animación de carga.
               if (snapshot.connectionState != ConnectionState.done) {
                 return const Center(child: CircularProgressIndicator());
               }
+              // Si falla la consulta, ofrece un botón para volver a intentarla.
               if (snapshot.hasError) {
                 return Center(child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -252,6 +285,7 @@ class _ListadoAdminState extends State<_ListadoAdmin> {
               return Column(
                 children: [
                   Expanded(
+                    // Un listado vacío muestra un mensaje; los datos permiten refresco.
                     child: items.isEmpty
                         ? const Center(child: Text('No hay elementos.'))
                         : RefreshIndicator(
@@ -260,10 +294,11 @@ class _ListadoAdminState extends State<_ListadoAdmin> {
                               try {
                                 await _datos;
                               } catch (_) {
-                                // FutureBuilder muestra el error de la recarga.
+                                // FutureBuilder se encarga de mostrar el error de la recarga.
                               }
                             },
                             child: ListView.separated(
+                              // Permite iniciar el gesto de actualización aunque haya pocos elementos.
                               physics: const AlwaysScrollableScrollPhysics(),
                               itemCount: items.length,
                               separatorBuilder: (_, _) => const Divider(height: 1),
@@ -271,12 +306,14 @@ class _ListadoAdminState extends State<_ListadoAdmin> {
                             ),
                           ),
                   ),
+                  // Solo se muestran controles de página en las secciones paginadas.
                   if (_paginado)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         TextButton(
                           onPressed: _pagina == 0 ? null : () {
+                            // Retrocede una página y vuelve a solicitar los datos.
                             _pagina--;
                             _recargar();
                           },
@@ -285,6 +322,7 @@ class _ListadoAdminState extends State<_ListadoAdmin> {
                         Text('Página ${_pagina + 1}'),
                         TextButton(
                           onPressed: items.length < 50 ? null : () {
+                            // Avanza únicamente cuando existe una página posiblemente completa.
                             _pagina++;
                             _recargar();
                           },
@@ -302,6 +340,7 @@ class _ListadoAdminState extends State<_ListadoAdmin> {
   }
 }
 
+/// Diálogo de creación y edición reutilizable para productos.
 class _FormularioProducto extends StatefulWidget {
   const _FormularioProducto({this.producto});
   final Map<String, dynamic>? producto;
@@ -311,17 +350,21 @@ class _FormularioProducto extends StatefulWidget {
 }
 
 class _FormularioProductoState extends State<_FormularioProducto> {
+  // Controlan los valores escritos por el usuario en los campos de texto.
   late final TextEditingController _nombre;
   late final TextEditingController _descripcion;
   late final TextEditingController _precio;
   late final TextEditingController _stock;
+  // Mantiene la categoría seleccionada en el menú desplegable.
   late String _categoria;
+  // Contiene el mensaje que se muestra al encontrar datos inválidos.
   String? _error;
 
   @override
   void initState() {
     super.initState();
     final producto = widget.producto;
+    // En edición se cargan los valores existentes; en alta se usan valores iniciales.
     _nombre = TextEditingController(text: producto?['nombre'] as String? ?? '');
     _descripcion = TextEditingController(text: producto?['descripcion'] as String? ?? '');
     _precio = TextEditingController(text: producto?['precio']?.toString() ?? '');
@@ -331,6 +374,7 @@ class _FormularioProductoState extends State<_FormularioProducto> {
 
   @override
   void dispose() {
+    // Se eliminan los controladores cuando el diálogo deja de existir.
     _nombre.dispose();
     _descripcion.dispose();
     _precio.dispose();
@@ -338,9 +382,11 @@ class _FormularioProductoState extends State<_FormularioProducto> {
     super.dispose();
   }
 
+  /// Valida el formulario y devuelve los datos preparados para la API.
   void _guardar() {
     final precio = double.tryParse(_precio.text.trim());
     final stock = int.tryParse(_stock.text.trim());
+    // El precio debe ser positivo y las existencias no pueden ser negativas.
     if (_nombre.text.trim().isEmpty || precio == null || !precio.isFinite || precio <= 0 || stock == null || stock < 0) {
       setState(() => _error = 'Indica nombre, precio positivo y existencias válidas.');
       return;
@@ -357,6 +403,7 @@ class _FormularioProductoState extends State<_FormularioProducto> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      // El título indica si el usuario está creando o modificando un producto.
       title: Text(widget.producto == null ? 'Nuevo producto' : 'Editar producto'),
       content: SingleChildScrollView(
         child: Column(

@@ -1,3 +1,4 @@
+/// Pantalla principal con el feed de publicaciones.
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 

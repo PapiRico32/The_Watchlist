@@ -1,3 +1,4 @@
+/// Tarjeta que resume una publicación dentro de listas y el feed.
 import 'package:flutter/material.dart';
 
 import '../models/models.dart';

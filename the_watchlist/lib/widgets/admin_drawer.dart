@@ -1,3 +1,4 @@
+/// Menú lateral con las opciones exclusivas de administración.
 import 'package:flutter/material.dart';
 
 import '../models/models.dart';

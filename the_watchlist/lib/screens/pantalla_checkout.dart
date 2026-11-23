@@ -1,3 +1,4 @@
+/// Pantalla que recopila y confirma los datos para crear un pedido.
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 

@@ -1,3 +1,4 @@
+/// Pantalla para buscar y explorar usuarios y publicaciones.
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';

@@ -1,3 +1,4 @@
+/// Campo de texto con el estilo visual estándar de la aplicación.
 import 'package:flutter/material.dart';
 
 class CustomTextField extends StatelessWidget {

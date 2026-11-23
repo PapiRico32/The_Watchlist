@@ -1,3 +1,4 @@
+/// Pantalla con la información y acciones de un producto.
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';

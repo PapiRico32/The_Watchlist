@@ -1,3 +1,4 @@
+/// Pantalla con el detalle y el estado de un pedido.
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 

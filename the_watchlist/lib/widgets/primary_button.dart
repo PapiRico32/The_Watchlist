@@ -1,3 +1,4 @@
+/// Botón principal con el estilo consistente de la interfaz.
 import 'package:flutter/material.dart';
 
 class PrimaryButton extends StatelessWidget {

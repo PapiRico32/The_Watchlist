@@ -1,3 +1,4 @@
+/// Pantalla para redactar una publicación y adjuntar una imagen.
 import 'dart:io';
 
 import 'package:flutter/material.dart';

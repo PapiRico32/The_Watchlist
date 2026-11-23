@@ -1,5 +1,6 @@
 import 'dart:async';
 
+/// Pantalla con el listado de conversaciones del usuario.
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 

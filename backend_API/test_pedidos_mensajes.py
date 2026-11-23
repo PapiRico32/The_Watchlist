@@ -1,3 +1,4 @@
+# Pruebas del flujo de pedidos y mensajería con una base SQLite temporal.
 import unittest
 from decimal import Decimal
 

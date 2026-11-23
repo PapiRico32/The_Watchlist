@@ -1,3 +1,4 @@
+# Configuración de la conexión SQLAlchemy y dependencias de base de datos.
 import os
 from collections.abc import Generator
 
@@ -8,7 +9,7 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 
 load_dotenv()
 
-
+# Construye la URL: primero usa DATABASE_URL y después las variables MySQL.
 def _crear_url_base_datos() -> str | URL:
     url_configurada = os.getenv("DATABASE_URL")
     if url_configurada:
@@ -24,7 +25,7 @@ def _crear_url_base_datos() -> str | URL:
         query={"charset": "utf8mb4"},
     )
 
-
+# Crea el motor compartido y permite SQLite sin comprobar el mismo hilo.
 _database_url = _crear_url_base_datos()
 engine = create_engine(
     _database_url,
@@ -42,6 +43,7 @@ SessionLocal = sessionmaker(
 Base = declarative_base()
 
 
+# Entrega una sesión de SQLAlchemy por solicitud y la cierra al terminar.
 def get_db() -> Generator:
 
     db = SessionLocal()
@@ -50,8 +52,7 @@ def get_db() -> Generator:
     finally:
         db.close()
 
-
-
+# Crea las tablas declaradas si todavía no existen.
 def init_db():
     Base.metadata.create_all(bind=engine)
 

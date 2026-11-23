@@ -1,3 +1,4 @@
+/// Widget para mostrar o seleccionar una valoración de estrellas.
 import 'package:flutter/material.dart';
 
 class Estrellas extends StatelessWidget {

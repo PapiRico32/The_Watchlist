@@ -1,3 +1,4 @@
+/// Pantalla que muestra el carrito y permite modificar sus elementos.
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 

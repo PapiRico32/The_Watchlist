@@ -1,3 +1,4 @@
+# API principal de FastAPI: autenticación, publicaciones y administración.
 import hashlib
 import hmac
 import logging
@@ -89,7 +90,7 @@ app.add_middleware(
 
 app.mount("/uploads", ArchivosCompartidos(UPLOADS_DIR, WEB_UPLOADS_DIR), name="uploads")
 
-
+# Comprueba la disponibilidad de la API y la conexión con la base de datos.
 @app.get("/", tags=["Estado"])
 def inicio() -> dict[str, str]:
     return {"name": "The Watchlist API", "status": "ok", "docs": "/docs"}
@@ -178,7 +179,7 @@ def get_current_user(
     return usuario
 
 
-# Autenticacion
+# Registro, inicio de sesión, perfil y extracción del usuario autenticado.
 
 @app.post("/auth/registrar", response_model=Token, status_code=201, tags=["Autenticacion"])
 def registrar(datos: UsuarioRegistro, db: Session = Depends(get_db)):
@@ -256,7 +257,7 @@ def actualizar_perfil(
     return usuario
 
 
-# Blog
+# Publicaciones, valoraciones, comentarios, reacciones y reportes.
 
 def serializar_publicacion(p: Blog, db: Session):
     promedio = db.query(func.avg(Valoracion.estrellas)).filter(
@@ -635,7 +636,7 @@ def reportar(
     return {"mensaje": "Reporte enviado"}
 
 
-# Mensajes
+# Conversaciones privadas, búsqueda de usuarios y envío de mensajes.
 
 @app.get("/mensajes/usuarios", tags=["Mensajes"])
 def buscar_usuarios_mensajes(
@@ -808,7 +809,7 @@ def enviar_mensaje(
     return {"mensaje": "Mensaje enviado"}
 
 
-# Tienda
+# Catálogo público de productos y consulta de un producto individual.
 
 @app.get("/tienda/productos", response_model=list[ProductoOut], tags=["Tienda"])
 def listar_productos(db: Session = Depends(get_db)):
@@ -823,7 +824,7 @@ def obtener_producto(id_producto: int, db: Session = Depends(get_db)):
     return producto
 
 
-# Carrito
+# Obtención y modificación de los elementos del carrito del usuario.
 
 def _obtener_o_crear_carrito(usuario_id: int, db: Session) -> Carrito:
     carrito = db.scalars(
@@ -949,7 +950,7 @@ def eliminar_item(
     db.commit()
 
 
-# Pedidos
+# Creación, consulta y pago simulados de pedidos.
 
 def _serializar_pedido(pedido: Pedido) -> PedidoOut:
     items = []
@@ -1105,6 +1106,7 @@ def pagar_pedido(
     return {"mensaje": "Pago procesado"}
 
 
+# Administración: solo permite operar a cuentas con el rol administrador.
 def requiere_admin(usuario: Usuario = Depends(get_current_user)) -> Usuario:
     if usuario.tip_usu != 2:
         raise HTTPException(status_code=403, detail="Se requiere una cuenta administradora")

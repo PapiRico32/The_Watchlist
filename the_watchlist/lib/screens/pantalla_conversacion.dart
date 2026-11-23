@@ -1,5 +1,6 @@
 import 'dart:async';
 
+/// Pantalla de conversación individual entre dos usuarios.
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 

@@ -1,3 +1,4 @@
+/// Fondo decorativo común a las pantallas de acceso y registro.
 import 'package:flutter/material.dart';
 
 class AuthBackground extends StatelessWidget {

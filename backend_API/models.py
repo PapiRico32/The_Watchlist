@@ -1,3 +1,4 @@
+# Modelos relacionales usados por SQLAlchemy para representar la base de datos.
 from sqlalchemy import (
     Boolean,
     Column,

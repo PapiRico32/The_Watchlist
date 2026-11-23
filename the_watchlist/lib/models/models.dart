@@ -1,3 +1,4 @@
+/// Modelos de datos utilizados por las pantallas y servicios de Flutter.
 class Usuario {
   final int id;
   final String nombre;

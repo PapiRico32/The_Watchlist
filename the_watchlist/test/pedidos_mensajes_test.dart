@@ -1,3 +1,4 @@
+/// Pruebas de integración de pedidos y mensajería en Flutter.
 import 'dart:async';
 
 import 'package:flutter/material.dart';

@@ -1,3 +1,4 @@
+# Esquemas Pydantic utilizados para validar entradas y serializar respuestas.
 from pydantic import BaseModel, Field
 from typing import Optional, List, Literal
 from datetime import datetime

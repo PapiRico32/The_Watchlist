@@ -1,3 +1,4 @@
+/// Punto de entrada de la aplicación Flutter y configuración de sus rutas.
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 

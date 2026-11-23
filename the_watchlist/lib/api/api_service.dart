@@ -1,5 +1,6 @@
 // Servicio HTTP central. Si una pantalla falla al cargar datos, revisar
 // baseUrl (10.0.2.2 para emulador Android) y los endpoints usados.
+/// Cliente HTTP alternativo usado para comunicarse con la API.
 import 'dart:convert';
 import 'dart:io';
 

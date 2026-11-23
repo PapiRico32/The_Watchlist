@@ -1,3 +1,4 @@
+/// Pantalla de catálogo y filtrado de productos disponibles.
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';

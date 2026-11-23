@@ -1,3 +1,4 @@
+/// Pantalla de detalle de una publicación y sus comentarios.
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
