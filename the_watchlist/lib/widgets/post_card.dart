@@ -7,6 +7,7 @@ import 'contenido_publicacion.dart';
 import 'estrellas.dart';
 
 class PostCard extends StatelessWidget {
+  /// Tarjeta interactiva que recibe una publicación y qué hacer al tocarla.
   const PostCard({super.key, required this.post, required this.onTap});
 
   final Publicacion post;

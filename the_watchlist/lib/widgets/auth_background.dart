@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 
 class AuthBackground extends StatelessWidget {
+  /// Fondo decorativo con luces y degradados para las pantallas de acceso.
   const AuthBackground({super.key, required this.child});
 
   final Widget child;

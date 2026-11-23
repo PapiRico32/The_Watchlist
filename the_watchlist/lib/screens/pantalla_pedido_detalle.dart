@@ -7,6 +7,7 @@ import '../services/auth_provider.dart';
 import '../models/models.dart';
 
 class PantallaPedidoDetalle extends StatefulWidget {
+  /// Presenta el estado, productos y pago de un pedido seleccionado.
   final int id;
 
   const PantallaPedidoDetalle({super.key, required this.id});

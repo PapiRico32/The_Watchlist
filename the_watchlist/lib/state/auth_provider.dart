@@ -6,6 +6,7 @@ import '../api/api_service.dart';
 import '../models/models.dart';
 
 class AuthProvider extends ChangeNotifier {
+  /// Versión alternativa o centralizada del proveedor de sesión y usuario.
   final ApiService _api = ApiService();
 
   Usuario? _usuario;

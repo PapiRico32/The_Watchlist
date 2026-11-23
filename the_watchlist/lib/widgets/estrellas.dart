@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 
 class Estrellas extends StatelessWidget {
+  /// Convierte una calificación numérica en iconos de estrellas visibles.
   final double promedio;
   final double size;
 

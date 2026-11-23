@@ -1,0 +1,1030 @@
+GUÍA PARA ENTENDER THE WATCHLIST
+Teoría y explicación del código, desde cero
+============================================================
+
+Esta guía describe el proyecto tal como está en los archivos actuales.
+Está pensada para leerla aunque todavía no sepas programar. No necesitas
+memorizar todo: usa el índice y vuelve a cada sección cuando la necesites.
+
+ÍNDICE
+  1. Qué hace el proyecto y cómo se organiza
+  2. Conceptos básicos de programación
+  3. Cliente, servidor, API y base de datos
+  4. HTTP, JSON, rutas y respuestas
+  5. Teoría del backend: Python, FastAPI y SQLAlchemy
+  6. Autenticación y seguridad
+  7. Base de datos y modelos
+  8. Librerías y archivos del backend
+  9. Rutas principales de la API
+ 10. Teoría del frontend: Dart y Flutter
+ 11. Widgets y estado: StatelessWidget y StatefulWidget
+ 12. Pantallas y por qué tienen ese tipo de widget
+ 13. Archivos y componentes de Flutter
+ 14. Flujos completos: login, publicación, compra y mensajes
+ 15. Pruebas, ejecución y solución de problemas
+ 16. Glosario y orden recomendado para estudiar
+
+
+1. QUÉ HACE EL PROYECTO Y CÓMO SE ORGANIZA
+============================================================
+
+The Watchlist es una aplicación para compartir contenido sobre películas
+y series. Permite, entre otras cosas:
+
+  - Crear una cuenta e iniciar sesión.
+  - Crear publicaciones, guardarlas como borradores y consultar publicaciones.
+  - Comentar, valorar y reportar contenido.
+  - Conversar con otros usuarios.
+  - Consultar productos, usar un carrito y crear pedidos con pago simulado.
+  - Administrar usuarios, contenido, productos y pedidos si la cuenta
+    tiene el rol administrador.
+
+El proyecto tiene dos partes principales:
+
+  the_watchlist\
+      Aplicación Flutter. Es la parte con la que interactúa el usuario:
+      pantallas, botones, campos, navegación y peticiones a la API.
+
+  backend_API\
+      Servidor escrito en Python. Recibe peticiones, verifica permisos,
+      ejecuta reglas de negocio y consulta o modifica la base de datos.
+
+Además se usa MySQL para guardar la información. XAMPP es una herramienta
+que puede ayudar a ejecutar MySQL y phpMyAdmin en una computadora local.
+La web PHP mencionada en el proyecto es una aplicación separada; no está
+contenida en esta carpeta. Puede compartir la base de datos con esta app.
+
+Esquema simplificado:
+
+  Usuario
+     |
+     v
+  Flutter: pantalla y botones
+     |
+     | Peticiones HTTP y respuestas JSON
+     v
+  FastAPI: rutas y reglas
+     |
+     | SQLAlchemy / PyMySQL
+     v
+  MySQL: usuarios, publicaciones, pedidos, etc.
+
+La app no debería conectarse directamente a MySQL: normalmente pide datos
+a la API, y la API es quien verifica y accede a la base.
+
+
+2. CONCEPTOS BÁSICOS DE PROGRAMACIÓN
+============================================================
+
+Variable: nombre que guarda un valor, como una cantidad o un texto.
+Por ejemplo, un contador podría guardar 3 y después cambiar a 4.
+
+Tipo de dato: indica qué clase de valor se espera.
+  - int / Integer: números enteros, por ejemplo 3.
+  - double: números decimales en Dart, por ejemplo 3.5.
+  - String / str: texto, por ejemplo "Hola".
+  - bool / Boolean: verdadero o falso.
+  - List / list: lista ordenada de elementos.
+  - Map / dict: pares de clave y valor, como nombre -> Ana.
+  - null en Dart y None en Python: ausencia de valor.
+
+Condición: permite elegir qué hacer según una situación. Ejemplo:
+si la contraseña es incorrecta, mostrar un error.
+
+Bucle: repite una operación para varios elementos. Por ejemplo, construir
+una tarjeta por cada publicación recibida.
+
+Función: conjunto de instrucciones al que se puede llamar por nombre.
+Puede recibir parámetros y devolver un resultado. Un método es una
+función asociada a una clase u objeto.
+
+Clase: plantilla para crear objetos. Por ejemplo, la clase Producto
+describe qué datos tiene un producto: nombre, precio, existencias, etc.
+Un objeto es un ejemplar concreto de esa clase.
+
+Import: permite usar código definido en otro archivo o librería.
+Ejemplo: una pantalla importa el servicio de autenticación para consultarlo.
+
+Error o excepción: algo impide continuar normalmente, por ejemplo que
+la API no esté disponible. try/catch en Dart y try/except en Python
+permiten manejar determinados errores.
+
+Código síncrono: sigue una instrucción tras otra. Código asíncrono:
+permite esperar operaciones como una petición de red sin bloquear toda
+la interfaz. En Dart se usan Future, async y await.
+
+En Dart, un nombre que empieza por guion bajo, como _cargar, es privado
+para su biblioteca. No significa que sea una función especial del sistema.
+
+Algunas palabras que verás con frecuencia:
+  - final: la variable Dart se asigna una sola vez. Su contenido puede
+    seguir siendo mutable si el objeto guardado lo permite.
+  - const: valor o construcción constante cuando se cumplen las reglas
+    de Dart. Ayuda a reutilizar widgets que no necesitan cambiar.
+  - late: se declara ahora y se inicializa después, antes de leerla.
+  - required: un parámetro con nombre debe proporcionarse al llamar.
+  - this: se refiere al objeto actual; this.nombre asigna un parámetro
+    a la propiedad nombre en muchos constructores Dart.
+  - @override: indica que un método reemplaza el heredado, por ejemplo
+    build en un widget. En Python @app.get es otro tipo de decorador.
+  - return: termina una función y, en su caso, devuelve un valor.
+  - if / else: ejecuta una rama según una condición.
+  - for: recorre elementos o repite una operación.
+  - import: incorpora nombres disponibles de otro archivo o paquete.
+
+Una clase puede heredar de otra. «extends StatefulWidget» significa que
+la clase aprovecha el comportamiento definido por StatefulWidget y
+aporta su propia implementación. Los parámetros no son lo mismo que
+las variables globales: se pasan a una función o constructor concreto.
+
+
+3. CLIENTE, SERVIDOR, API Y BASE DE DATOS
+============================================================
+
+Frontend o cliente: parte que ve y utiliza la persona. En este proyecto
+es Flutter. Muestra botones y formularios, recibe entradas y presenta
+resultados. Puede ejecutarse en navegador o en un dispositivo compatible.
+
+Backend o servidor: programa que recibe solicitudes y decide qué hacer.
+En este proyecto está en Python con FastAPI. Por ejemplo, al recibir un
+pedido comprueba que exista el usuario y que haya existencias.
+
+API: interfaz que define cómo se comunican programas distintos. Aquí la
+API ofrece direcciones como /auth/login y /blog/publicaciones. Una API
+no es una pantalla ni es, por sí sola, la base de datos.
+
+Base de datos: sistema para almacenar datos de forma organizada y
+duradera. MySQL guarda tablas relacionadas. Por ejemplo, la tabla blog
+tiene el identificador de su autor en usr_id.
+
+Lógica de negocio: reglas propias de la aplicación. Ejemplos: un usuario
+suspendido no debe iniciar sesión; el pago es simulado; un producto no
+se agrega con una cantidad superior a sus existencias.
+
+Persistencia: conservar información para poder recuperarla después. Un
+valor guardado solo en el estado de un widget puede perderse al cerrar
+la app; un registro guardado en MySQL permanece en la base de datos.
+
+
+4. HTTP, JSON, RUTAS Y RESPUESTAS
+============================================================
+
+HTTP es el protocolo con el que la app y la API se envían solicitudes
+y respuestas. Cada solicitud tiene una dirección, un método y, según
+el caso, encabezados y datos.
+
+Métodos HTTP utilizados en este proyecto:
+
+  GET     Solicita información.
+          Ejemplo: GET /tienda/productos devuelve productos.
+
+  POST    Envía información para crear o ejecutar una acción.
+          Ejemplo: POST /auth/login intenta iniciar sesión.
+          POST /blog/publicaciones crea una publicación.
+
+  PUT     Actualiza información existente.
+          Ejemplo: PUT /auth/me modifica datos del perfil.
+          En este proyecto algunas rutas PUT aceptan solo ciertos campos.
+
+  DELETE  Solicita eliminar un recurso.
+          Ejemplo: DELETE /carrito/item/{id_item}.
+
+Estos métodos HTTP no son lo mismo que los métodos de una clase Dart
+o Python, aunque ambos se llamen «métodos».
+
+Ruta o endpoint: combinación de dirección y método atendida por la API.
+En /pedidos/{id_pedido}, lo que va entre llaves es una variable de ruta:
+por ejemplo, /pedidos/12 pide el pedido con identificador 12.
+
+Parámetros de consulta: opciones que acompañan a la URL. Por ejemplo,
+q y orden en el listado de publicaciones permiten buscar y ordenar.
+
+Encabezados: información adicional de la solicitud. Una ruta protegida
+puede recibir Authorization: Bearer <token>. No compartas tu token.
+
+JSON es un formato de intercambio de datos. Ejemplo inventado:
+
+  {"nombre": "Ana", "tipo_usuario": 1}
+
+No todos los datos se envían como JSON. Al crear una publicación con
+imagen se usa multipart/form-data, que permite enviar campos de texto
+y archivos en la misma petición.
+
+Ejemplos de códigos HTTP:
+  200: solicitud completada.
+  201: recurso creado.
+  204: operación completada sin contenido de respuesta.
+  400: petición que no cumple alguna regla, como un formato no permitido.
+  401: falta autenticación válida o la sesión no es válida.
+  403: el usuario no tiene permiso, o la cuenta está suspendida.
+  404: no se encontró el recurso, o no se expone al usuario.
+  422: datos de entrada inválidos.
+  500: error interno del servidor.
+
+Estos son significados generales; el mensaje concreto depende de la ruta.
+
+
+5. TEORÍA DEL BACKEND: PYTHON, FASTAPI Y SQLALCHEMY
+============================================================
+
+Python es el lenguaje del servidor. FastAPI es el framework que recibe
+las solicitudes HTTP y las dirige a funciones.
+
+Ejemplo simplificado:
+
+  @app.get("/health")
+  def salud():
+      ...
+
+La línea que empieza por @ es un decorador: le dice a FastAPI que la
+función atiende una solicitud GET a esa ruta. Las llaves y las
+indentaciones importan: en Python los bloques se agrupan por sangría.
+
+Pydantic describe y valida la forma de los datos. Por ejemplo, un esquema
+de pedido define qué datos de entrega se esperan. FastAPI puede responder
+con un error si faltan datos o tienen un tipo incorrecto.
+
+SQLAlchemy es un ORM: permite trabajar con objetos Python relacionados
+con tablas. En vez de escribir todas las consultas SQL a mano, el código
+puede hacer db.query(Blog), filtrar filas y crear objetos Blog.
+
+El ORM no sustituye la base: SQLAlchemy construye y ejecuta operaciones
+sobre ella. PyMySQL es el controlador que permite conectarse a MySQL.
+
+Una sesión de base de datos representa el trabajo de una solicitud:
+  - db.add(objeto): prepara un objeto nuevo para guardarlo.
+  - db.flush(): envía cambios pendientes sin terminar la transacción;
+    puede permitir obtener un identificador antes del commit.
+  - db.commit(): confirma la transacción.
+  - db.rollback(): deshace cambios de la transacción si falló.
+  - db.refresh(objeto): vuelve a cargar sus valores desde la base.
+  - db.close(): libera la sesión.
+
+Al leer una consulta como:
+
+  db.query(Blog).filter(Blog.usr_id == usuario.id_usr).all()
+
+db es la sesión; query(Blog) comienza una consulta sobre publicaciones;
+filter limita el resultado a un autor; all obtiene todos los resultados
+que cumplen esa condición. El ORM transforma la consulta en SQL.
+
+Depends(...) es el sistema de dependencias de FastAPI. Permite pedir,
+por ejemplo, una sesión de base de datos o el usuario autenticado antes
+de ejecutar una función. get_db entrega una sesión y la cierra al terminar.
+
+HTTPException indica un error HTTP deliberado. Por ejemplo, una ruta
+puede devolver 404 si no existe el pedido solicitado.
+
+Serializar significa convertir datos a una representación apta para
+enviarlos. serializar_publicacion crea una respuesta con el contenido,
+autor y estadísticas; el cliente recibe la información como JSON.
+
+
+6. AUTENTICACIÓN Y SEGURIDAD
+============================================================
+
+Autenticación responde «¿quién eres?». Autorización responde «¿tienes
+permiso para hacer esto?». Son cosas distintas.
+
+Inicio de sesión:
+  1. El usuario escribe correo y contraseña en Flutter.
+  2. La app envía los datos a POST /auth/login.
+  3. La API busca la cuenta y verifica la contraseña.
+  4. Si es válida y la cuenta está activa, devuelve un JWT.
+  5. La app guarda el token con flutter_secure_storage y lo envía en
+     Authorization para acceder a las rutas protegidas.
+
+Hash de contraseña: transformación que permite verificar una contraseña
+sin guardarla como texto normal. La app usa Passlib con bcrypt para nuevas
+contraseñas; también existe verificación compatible con un formato PBKDF2
+anterior. Un hash de contraseña no es cifrado reversible.
+
+JWT: token firmado que contiene datos, incluido el identificador del
+usuario y una fecha de expiración. La API comprueba su firma y vigencia.
+Quien tenga un token válido puede usarlo como credencial: no lo compartas.
+El token no debe considerarse secreto solo porque esté codificado.
+
+JWT_SECRET_KEY firma los tokens. Debe ser secreta y estable. Si no está
+configurada, el servidor genera una temporal y los tokens anteriores
+dejan de ser válidos cuando se reinicia. Nunca publiques la clave ni el
+contenido de .env.
+
+Rol: tip_usu distingue el usuario normal del administrador; en este
+proyecto 2 representa administrador. El frontend muestra opciones según
+el rol, pero la comprobación importante se hace en la API con
+requiere_admin. Ocultar un botón no es una medida de seguridad suficiente.
+
+Los borradores aparecen en la consulta de publicaciones del propio usuario;
+la consulta de su detalle comprueba el autor. Los archivos de imágenes se
+sirven por una ruta estática: no se debe asumir que una imagen subida es
+privada solo por pertenecer a un borrador.
+
+Importante: el servidor de desarrollo utiliza HTTP, recarga automática y
+una configuración CORS amplia. Es para desarrollo local, no para exponerlo
+directamente a Internet. Para producción hacen falta HTTPS, secretos
+persistentes y revisar configuración, permisos y seguridad.
+
+
+7. BASE DE DATOS Y MODELOS
+============================================================
+
+Una tabla se parece a una hoja de cálculo: las columnas describen los
+campos y cada fila representa un registro. Un identificador o clave
+primaria (primary key) distingue cada fila.
+
+Una clave foránea (ForeignKey) guarda una referencia a otra fila:
+blog.usr_id apunta a usuario.id_usr. Así una publicación tiene autor.
+UNIQUE impide ciertas duplicaciones. Por ejemplo, las valoraciones tienen
+una restricción para un usuario y una publicación.
+
+En backend_API\models.py:
+
+  Usuario: cuenta, correo, hash de contraseña, rol, estado y perfil.
+  Blog: publicación, contenido, imagen, tipo, autor y estado.
+  Valoracion: estrellas que un usuario da a una publicación.
+  Sticker: nombre y archivo de un sticker.
+  Comentario: texto, autor y publicación; puede referir un comentario padre.
+  Reaccion: tipo de reacción de un usuario a un comentario.
+  ReaccionStickerComentario: asociación de usuario, comentario y sticker.
+  Conversacion: par de usuarios que participan en un chat.
+  Mensaje: texto, conversación, autor, lectura y fecha.
+  ReaccionStickerMensaje: asociación de usuario, mensaje y sticker.
+  Producto: artículo de la tienda, precio, categoría y existencias.
+  Carrito: carrito asociado a un usuario.
+  CarritoItem: producto y cantidad dentro de un carrito.
+  Pedido: compra con datos de entrega y estados de pago y envío.
+  PedidoItem: producto y cantidad registrados en un pedido; conserva
+              nombre y precio para representar la compra.
+  Pago: registro de un intento de pago simulado.
+  Reporte: contenido o cuenta señalada, motivo y estado del reporte.
+
+relationship de SQLAlchemy ayuda a recorrer relaciones como
+publicacion.autor o carrito.items. ForeignKey define la referencia en la
+base; relationship facilita el acceso entre objetos Python.
+
+En Blog, según el flujo de la aplicación, estatus 0 es borrador, 1 es
+publicado y 2 se utiliza para contenido ocultado al resolver un reporte.
+Estos números son propios de este proyecto, no una regla universal.
+
+El modelo Pedido guarda estado_pago como pendiente, pagado o rechazado;
+estado_envio puede ser confirmado, preparacion, enviado o entregado.
+Decimal / Numeric se usa para importes en el backend para evitar algunos
+problemas habituales de precisión de números decimales binarios.
+
+
+8. LIBRERÍAS Y ARCHIVOS DEL BACKEND
+============================================================
+
+backend_API\requirements.txt declara las dependencias de Python:
+
+  fastapi: framework para crear la API.
+  uvicorn[standard]: servidor ASGI que ejecuta FastAPI.
+  SQLAlchemy: ORM, sesiones y consultas de base de datos.
+  PyMySQL: controlador de conexión a MySQL.
+  cryptography: operaciones criptográficas utilizadas por dependencias.
+  python-jose[cryptography]: creación y verificación de JWT.
+  passlib[bcrypt] y bcrypt: hash y verificación de contraseñas.
+  python-multipart: permite recibir formularios y archivos.
+  pydantic[email]: esquemas y validación de datos; instala soporte para
+                   validación de correo cuando se utilizan esos tipos.
+  python-dotenv: carga variables de entorno desde un archivo .env.
+
+«Librería» o paquete es código reutilizable instalado como dependencia.
+Las versiones específicas se consultan en requirements.txt.
+
+Archivos:
+
+  backend_API\main.py
+    Define la aplicación FastAPI, sus rutas, validaciones de negocio,
+    autenticación, manejo de imágenes y operaciones sobre los datos.
+    lifespan llama a init_db al arrancar. /health intenta consultar la BD.
+    ArchivosCompartidos sirve archivos desde la carpeta local y, si
+    corresponde, una carpeta de la web configurada.
+
+    Funciones importantes para localizar dentro de main.py:
+      hash_password / verificar_password: crean y verifican hashes.
+      crear_token / get_current_user: crean JWT y comprueban la sesión.
+      registrar / login / actualizar_perfil: operaciones de cuenta.
+      serializar_publicacion: prepara la respuesta y sus estadísticas.
+      listar / mis_publicaciones / obtener: consultas de publicaciones.
+      crear / actualizar / eliminar: operaciones sobre publicaciones.
+      valorar / comentar / reaccionar / reportar: interacciones del blog.
+      buscar_usuarios_mensajes / listar_conversaciones: búsquedas y chats.
+      iniciar_conversacion / obtener_mensajes / enviar_mensaje: mensajería.
+      listar_productos / obtener_producto: catálogo.
+      _obtener_o_crear_carrito / _serializar: gestión y cálculo de carrito.
+      agregar_al_carrito / actualizar_item / eliminar_item: cambios.
+      crear_pedido / listar_pedidos / obtener_pedido / pagar_pedido:
+        flujo de pedidos y pago de prueba.
+      requiere_admin: dependencia que exige rol administrador.
+      Funciones terminadas en _admin: consultas o acciones administrativas.
+
+  backend_API\database.py
+    Lee la configuración de conexión, crea el engine SQLAlchemy y
+    SessionLocal, define Base y ofrece get_db e init_db.
+    DATABASE_URL tiene prioridad; si no existe, usa variables MYSQL_*.
+
+  backend_API\models.py
+    Define las clases ORM y su correspondencia con tablas y relaciones.
+    Los modelos de base de datos son distintos de los schemas de API.
+
+  backend_API\schemas.py
+    Define clases Pydantic para validar datos recibidos y estructurar
+    respuestas. Ejemplos: UsuarioRegistro, PublicacionOut y PedidoCrear.
+    Optional significa que el valor puede ser opcional según el esquema;
+    Field permite declarar restricciones, como cantidades mayores a cero.
+
+  backend_API\iniciar_backend.py
+    Ejecuta Uvicorn para servir main:app en el puerto 8000, con recarga
+    automática pensada para desarrollo.
+
+  backend_API\db.sql
+    Script MySQL de creación de blog_db y datos iniciales. COMIENZA
+    ELIMINANDO Y RECREANDO LA BASE: no lo importes sobre datos que quieras
+    conservar sin antes respaldarlos.
+
+  backend_API\schema.sql
+    Otro script de creación; usa el nombre bd_the_watchlist. No asumas
+    que es intercambiable con db.sql ni con una base existente: consulta
+    sus tablas y configuración antes de usarlo.
+
+  backend_API\test_archivos.py
+    Pruebas del servicio de archivos compartidos y tratamiento de rutas.
+
+  backend_API\test_pedidos_mensajes.py
+    Pruebas de pedidos, pagos y búsqueda usando SQLite temporal.
+
+  backend_API\test_publicaciones.py
+    Pruebas de consulta de publicaciones propias y acceso a borradores.
+
+  backend_API\README.md
+    Guía concreta de configuración, ejecución y detalles del backend.
+
+  backend_API\.env
+    Configuración local opcional y potencialmente sensible. No está
+    pensada para compartirse ni subirse al repositorio.
+
+  backend_API\venv\
+    Entorno virtual local de Python. Aísla las dependencias instaladas;
+    se genera, no es el código de la aplicación.
+
+  backend_API\uploads\
+    Archivos subidos; publicaciones se guarda en su subcarpeta.
+
+
+9. RUTAS PRINCIPALES DE LA API
+============================================================
+
+Consulta la lista exacta y actualizada en http://127.0.0.1:8000/docs
+cuando el servidor esté encendido. Los nombres entre llaves son ejemplos
+de parámetros, no se escriben literalmente al hacer una petición.
+
+Estado:
+  GET /                            Información básica.
+  GET /health                      Comprueba API y conexión a la base.
+
+Sesión:
+  POST /auth/registrar             Crea usuario y devuelve token.
+  POST /auth/login                 Inicia sesión.
+  GET  /auth/me                    Obtiene el usuario autenticado.
+  PUT  /auth/me                    Actualiza campos del perfil.
+
+Publicaciones:
+  GET    /blog/publicaciones       Lista publicaciones visibles; acepta
+                                   búsqueda, filtros y orden.
+  GET    /blog/mis-publicaciones   Publicaciones y borradores propios;
+                                   requiere autenticación.
+  GET    /blog/publicaciones/{id}  Obtiene una publicación; para obtener
+                                   un borrador se verifica el autor.
+  POST   /blog/publicaciones       Crea una publicación o borrador;
+                                   acepta imagen multipart.
+  PUT    /blog/publicaciones/{id}  Actualiza campos de una publicación
+                                   propia; usa JSON.
+  DELETE /blog/publicaciones/{id}  Elimina una publicación propia.
+  POST   /blog/publicaciones/{id}/valorar  Envía estrellas.
+  GET    /blog/stickers            Consulta stickers.
+  POST   /blog/comentarios         Crea un comentario.
+  GET    /blog/publicaciones/{id}/comentarios  Consulta comentarios.
+  POST   /blog/comentarios/{id}/reaccion       Envía una reacción.
+  POST   /blog/reportar            Envía un reporte.
+
+Mensajes:
+  GET  /mensajes/usuarios                  Busca personas.
+  GET  /mensajes/conversaciones            Lista chats.
+  POST /mensajes/conversacion/{id_usuario} Abre o crea un chat.
+  GET  /mensajes/conversacion/{id}         Obtiene mensajes.
+  POST /mensajes/conversacion/{id}/mensaje Envía un mensaje.
+
+Tienda y pedidos:
+  GET    /tienda/productos           Lista productos.
+  GET    /tienda/productos/{id}      Detalle.
+  GET    /carrito                    Obtiene el carrito.
+  POST   /carrito/agregar            Agrega un producto.
+  PUT    /carrito/item/{id}          Cambia cantidad.
+  DELETE /carrito/item/{id}          Quita un elemento.
+  POST   /pedidos                    Crea un pedido.
+  GET    /pedidos                    Lista pedidos propios.
+  GET    /pedidos/{id}               Obtiene un pedido propio.
+  POST   /pedidos/{id}/pago          Ejecuta un pago simulado.
+
+Administración:
+  /admin/resumen, /admin/usuarios, /admin/publicaciones,
+  /admin/comentarios, /admin/reportes, /admin/productos y /admin/pedidos.
+  Sus rutas de consulta y modificación exigen un administrador. Algunas
+  incluyen identificadores y sufijos como /estado o /envio.
+
+
+10. TEORÍA DEL FRONTEND: DART Y FLUTTER
+============================================================
+
+Dart es el lenguaje de la aplicación. Flutter es el framework que usa
+Dart para construir interfaces. No son lo mismo: Dart es el lenguaje;
+Flutter aporta widgets, herramientas, motor y otros componentes.
+
+En Flutter, la interfaz se forma con un árbol de widgets. Un widget es
+una descripción de una parte de la interfaz: un texto, botón, margen,
+pantalla o conjunto de otros widgets. Ejemplo:
+
+  Scaffold
+    AppBar
+    body: Column
+      Text
+      ElevatedButton
+
+Widgets de Flutter presentes en este proyecto:
+  MaterialApp: configuración general, tema y navegación.
+  Scaffold: estructura visual habitual de una pantalla Material.
+  AppBar: barra superior.
+  Column / Row: organizan hijos vertical / horizontalmente.
+  Padding / SizedBox: espacio alrededor o entre elementos.
+  Center: centra su contenido.
+  Text / Icon: texto / icono.
+  TextField: entrada de texto.
+  ElevatedButton / TextButton / IconButton: botones.
+  ListView / GridView: listas / cuadrículas desplazables.
+  Card / ListTile: tarjeta / fila visual.
+  Expanded: reparte el espacio disponible dentro de Row o Column.
+  Navigator / MaterialPageRoute: abren y cierran pantallas.
+  FutureBuilder: reconstruye una parte de la interfaz según el estado
+                 de un Future: pendiente, error o resultado.
+  CircularProgressIndicator: indicador de carga.
+  SnackBar: mensaje breve que aparece en la interfaz.
+  AlertDialog: ventana de confirmación o formulario.
+  IndexedStack: muestra uno de varios hijos y conserva sus estados.
+  RefreshIndicator: permite actualizar tirando de una lista.
+
+BuildContext identifica la posición de un widget en el árbol y permite
+acceder a elementos superiores, por ejemplo Theme o un Provider. No es
+un archivo ni la pantalla completa.
+
+build(context) describe qué widgets mostrar con los datos actuales.
+Flutter puede volver a llamar a build muchas veces; por eso no debe
+entenderse como una función que se ejecuta una sola vez.
+
+TextEditingController permite leer, modificar y observar texto escrito.
+Cuando pertenece al State, normalmente se libera en dispose().
+
+Navigator.push abre una ruta encima de la actual. Navigator.pop cierra
+la ruta actual y puede devolver un resultado, como true para indicar que
+se guardó una publicación.
+
+
+11. WIDGETS Y ESTADO: STATELESSWIDGET Y STATEFULWIDGET
+============================================================
+
+Estado significa datos que pueden cambiar y afectan lo que se muestra:
+el texto introducido, la página seleccionada, una lista cargada o si
+una petición está en progreso.
+
+StatelessWidget:
+  Se describe a partir de sus parámetros y del contexto. No mantiene
+  un objeto State propio. Puede volver a construirse si cambian sus
+  parámetros o un proveedor del que depende; «stateless» NO significa
+  que nunca se actualice ni que no pueda tener botones.
+
+StatefulWidget:
+  Tiene un objeto State asociado que conserva datos locales durante la
+  vida de ese widget. Se usa cuando necesita manejar cambios locales,
+  como resultados de búsqueda, controladores o temporizadores.
+
+Pasos frecuentes en un StatefulWidget:
+  1. createState crea su objeto State.
+  2. initState se ejecuta al inicializarlo; puede arrancar una carga.
+  3. build describe la interfaz según el estado actual.
+  4. setState informa a Flutter de un cambio local y solicita reconstruir.
+  5. dispose libera recursos como controladores y temporizadores.
+
+mounted indica si el State todavía está en el árbol. Después de await,
+la pantalla podría haberse cerrado; comprobar mounted evita intentar
+actualizar una pantalla que ya no existe.
+
+Provider / ChangeNotifier:
+  Además del estado local, una app necesita compartir datos. Este
+  proyecto usa AuthProvider para compartir usuario, sesión y servicio.
+  notifyListeners avisa a los widgets interesados cuando cambia.
+  context.watch<T>() escucha cambios y puede reconstruir el widget.
+  context.read<T>() obtiene el valor sin suscribirse a cambios.
+
+Future, async y await:
+  Un Future representa un resultado que llegará después. async marca una
+  función asíncrona; await espera su resultado. Esto permite que la UI
+  muestre carga mientras el servidor responde.
+
+Null safety:
+  String? puede contener texto o null. La comprobación de null ayuda a
+  evitar usar un dato ausente. El operador ! afirma que no es null;
+  debe usarse solo cuando realmente se garantiza.
+
+
+12. PANTALLAS Y POR QUÉ TIENEN ESE TIPO DE WIDGET
+============================================================
+
+En cada nombre, el tipo mencionado es la clase de pantalla principal.
+Muchas pantallas tienen una clase interna _...State con sus datos.
+
+  PantallaArranque — StatefulWidget.
+    Mantiene la operación de carga de sesión. FutureBuilder muestra
+    carga, error o la pantalla adecuada.
+
+  PantallaErrorRuta — StatelessWidget.
+    Recibe un mensaje y construye una pantalla de error sin estado local.
+
+  PantallaInicio — StatefulWidget.
+    Guarda la sección seleccionada y las pantallas de navegación.
+    ContenidoInicio también es StatefulWidget porque carga el feed.
+
+  PantallaLogin — StatefulWidget.
+    Mantiene controladores de correo y contraseña y un mensaje de error.
+
+  PantallaRegistro — StatefulWidget.
+    Mantiene entradas, validaciones y estado del formulario.
+
+  PantallaExplorar — StatefulWidget.
+    Mantiene búsqueda, filtros, orden, resultados, carga y errores.
+
+  PantallaCrearPublicacion — StatefulWidget.
+    Mantiene campos, tipo, selección de imagen y estado de guardado.
+    Se usa para crear y editar. Actualmente la imagen no se puede cambiar
+    al editar; sí se puede adjuntar al crear.
+
+  PantallaPublicacion — StatefulWidget.
+    Carga una publicación, comentarios y stickers; permite interacciones.
+
+  PantallaMisPublicaciones — StatefulWidget.
+    Espera una consulta de publicaciones propias; permite abrir una
+    publicada o editar un borrador y recargar la lista.
+
+  PantallaMensajes — StatefulWidget.
+    Mantiene conversaciones, resultados de búsqueda y su temporizador.
+
+  PantallaConversacion — StatefulWidget.
+    Guarda mensajes y texto; consulta periódicamente mientras está abierta.
+
+  PantallaTienda — StatefulWidget.
+    Carga el catálogo y mantiene sus estados de carga y error.
+
+  PantallaProducto — StatefulWidget.
+    Carga el producto y controla las acciones para agregarlo al carrito.
+
+  PantallaCarrito — StatefulWidget.
+    Carga los elementos y permite actualizar cantidades y eliminar.
+
+  PantallaCheckout — StatefulWidget.
+    Mantiene los campos de entrega y la creación del pedido.
+
+  PantallaPedidos — StatefulWidget.
+    Carga el historial de pedidos.
+
+  PantallaPedidoDetalle — StatefulWidget.
+    Carga el pedido y controla las acciones de pago simulado.
+
+  PantallaPerfil — StatelessWidget.
+    Obtiene el usuario del proveedor y muestra opciones. Los formularios
+    pueden estar en diálogos: no necesita un State propio de pantalla.
+    Puede reconstruirse cuando cambia AuthProvider.
+
+  PantallaAdmin — StatelessWidget.
+    Comprueba el rol y arma las pestañas. Sus hijos _ListadoAdmin y
+    _FormularioProducto sí son StatefulWidget porque necesitan conservar
+    carga, paginación, acciones y datos del formulario.
+
+La elección no es una regla basada solo en si existe un botón: lo que
+importa es dónde vive el estado que cambia.
+
+
+13. ARCHIVOS Y COMPONENTES DE FLUTTER
+============================================================
+
+Raíz de the_watchlist:
+  pubspec.yaml: nombre, versión, restricciones del SDK y dependencias.
+  pubspec.lock: versiones concretas resueltas de dependencias.
+  analysis_options.yaml: reglas del analizador y exclusiones.
+  README.md: instrucciones específicas para ejecutar Flutter.
+  .metadata: información que utiliza Flutter sobre el proyecto.
+  .vscode\launch.json: configuración de ejecución de VS Code.
+
+Dependencias declaradas en pubspec.yaml:
+  flutter: framework y SDK de interfaz.
+  cupertino_icons: iconos de estilo Cupertino.
+  provider: comparte y observa estado, como AuthProvider.
+  http: construye y envía solicitudes HTTP.
+  flutter_secure_storage: almacenamiento del token mediante el plugin
+                          correspondiente a cada plataforma.
+  image_picker: permite seleccionar imágenes; XFile abstrae la imagen
+                para que se puedan leer sus bytes en web y móvil.
+  flutter_test: herramientas para pruebas de Flutter.
+  flutter_lints: reglas recomendadas para analizar código Dart.
+
+Código propio en lib:
+
+  lib\main.dart
+    Punto de entrada. main inicia Flutter y runApp; EntreEscenasApp crea
+    AuthProvider, tema, rutas y pantalla de arranque. PantallaArranque
+    intenta restaurar la sesión. PantallaErrorRuta muestra rutas inválidas.
+
+  lib\models\models.dart
+    Modelos Dart Usuario, Publicacion, Comentario, Sticker, UsuarioMensaje,
+    Conversacion, Mensaje, Producto, ItemCarrito, Carrito y Pedido.
+    Los métodos fromJson convierten respuestas de la API en objetos.
+
+  lib\services\auth_provider.dart
+    AuthProvider usado por main.dart y las pantallas principales. Comparte
+    el usuario, el estado de carga y operaciones como iniciarSesion,
+    registrar, cargarSesion, guardarPerfil y cerrarSesion.
+
+  lib\services\api_service.dart
+    Cliente de API que usa la aplicación principal. Construye URLs,
+    obtiene y guarda el token, envía peticiones, interpreta errores y
+    convierte respuestas a modelos. crearPublicacion usa multipart e
+    imagen como XFile. Incluye llamadas a publicaciones, mensajes, tienda,
+    pedidos y administración. Algunas operaciones usan su cliente con
+    timeout; no todas las llamadas siguen necesariamente el mismo camino.
+
+    Ejemplos de métodos de esta clase:
+      obtenerToken / guardarToken / eliminarToken: gestionan el token.
+      registrar / iniciarSesion / obtenerPerfil: operaciones de cuenta.
+      listarPublicaciones / listarMisPublicaciones / obtenerPublicacion:
+        consultan listas y detalles.
+      crearPublicacion / actualizarPublicacion / eliminarPublicacion:
+        envían operaciones de escritura al backend.
+      listarConversaciones / iniciarConversacion / enviarMensaje:
+        operaciones de chat.
+      listarProductos / obtenerCarrito / agregarAlCarrito: tienda.
+      crearPedido / obtenerPedido / pagarPedido: pedidos.
+      listarAdministracion / accionAdministracion: panel administrador.
+    Estos métodos de Dart no son los endpoints: cada uno prepara una
+    petición HTTP y llama a una dirección del servidor.
+
+  lib\api\api_service.dart
+    Otra implementación de ApiService presente en el repositorio. Usa
+    su propia configuración y tiene métodos similares, pero no es el
+    servicio que crea main.dart para la aplicación principal.
+
+  lib\state\auth_provider.dart
+    Otro AuthProvider, que importa lib\api\api_service.dart. No es el
+    proveedor creado por main.dart. Al estudiar o cambiar código, revisa
+    el import para no confundirlo con lib\services\auth_provider.dart.
+    Que existan dos implementaciones no implica que estén sincronizadas.
+
+Archivos de lib\screens:
+  pantalla_inicio.dart: contenedor, menú, navegación y feed de inicio.
+  pantalla_login.dart: formulario para iniciar sesión.
+  pantalla_registro.dart: formulario para crear una cuenta.
+  pantalla_explorar.dart: busca publicaciones y aplica filtros y orden.
+  pantalla_crear_publicacion.dart: crea o edita una publicación o borrador.
+  pantalla_publicacion.dart: detalle, valoraciones, comentarios y acciones.
+  pantalla_mis_publicaciones.dart: lista publicaciones y borradores propios.
+  pantalla_mensajes.dart: conversaciones y búsqueda de usuarios.
+  pantalla_conversacion.dart: chat individual y envío de mensajes.
+  pantalla_tienda.dart: cuadrícula de productos del catálogo.
+  pantalla_producto.dart: detalle de un producto y acción de agregarlo.
+  pantalla_carrito.dart: elementos, cantidades, eliminación y total.
+  pantalla_checkout.dart: captura datos de envío para crear un pedido.
+  pantalla_pedidos.dart: historial de pedidos.
+  pantalla_pedido_detalle.dart: datos del pedido y pago simulado.
+  pantalla_perfil.dart: datos del usuario y accesos a perfil, pedidos y
+                         publicaciones propias.
+  pantalla_admin.dart: pestañas y acciones de administración.
+
+Métodos que se repiten en las pantallas:
+  _cargar: solicita datos y guarda el resultado o un error en el estado.
+           Cada pantalla tiene su propia implementación de _cargar.
+  _buscar: obtiene resultados con el texto o filtros actuales.
+  _publicar: valida el formulario y pide crear o actualizar contenido.
+  _seleccionarImagen: abre el selector de imágenes.
+  _enviar: envía el texto de un mensaje.
+  _crearPedido: envía los datos de entrega para generar un pedido.
+  _accion: ejecuta una operación del panel de administración.
+  dispose: libera los recursos que la pantalla haya creado.
+  build: arma los widgets que se verán con el estado actual.
+
+Componentes de lib\widgets:
+  admin_drawer.dart: menú lateral con cuenta, navegación y cierre de sesión.
+  auth_background.dart: fondo visual para acceso / registro.
+  auth_card.dart: tarjeta visual para formularios de autenticación.
+  category_chip.dart: opción de categoría seleccionable.
+  contenido_publicacion.dart: separa texto y marcadores de imágenes para
+    mostrar contenido e imágenes; textoSinImagenes crea un resumen sin
+    esos marcadores. Un comentario del propio archivo puede quedar
+    desactualizado: el código sí construye widgets de imagen.
+  custom_text_field.dart: campo de texto reutilizable con configuración.
+  estrellas.dart: representa una valoración con iconos de estrellas.
+  post_card.dart: tarjeta de resumen de publicación con acción al tocarla.
+  primary_button.dart: botón reutilizable con estilo y estado de carga.
+
+Los nueve componentes de widgets son StatelessWidget. Reciben datos o
+callbacks; el estado que necesitan lo mantiene su padre o un proveedor.
+
+Pruebas de Flutter:
+  test\widget_test.dart: pruebas de widgets, navegación y otros flujos
+    utilizando servicios falsos para no depender de una API real.
+  test\pedidos_mensajes_test.dart: pruebas de flujos de pedidos y mensajes.
+  test\publicacion_imagen_test.dart: prueba la construcción de la petición
+    de creación con y sin imagen y la respuesta a un error del servidor.
+
+Plataformas:
+  android\: configuración Gradle y aplicación anfitriona Android.
+    android\app\src\main\AndroidManifest.xml declara, entre otras cosas,
+    la actividad principal y el permiso de Internet.
+    android\app\src\main\kotlin\...\MainActivity.kt conecta Flutter con
+    la actividad Android. res\ contiene estilos, fondos e iconos en
+    diferentes densidades. Los manifests debug y profile pertenecen a
+    esos modos; los archivos Gradle configuran la compilación.
+
+  ios\: proyecto anfitrión de Xcode. Runner\Info.plist contiene
+    configuración iOS; AppDelegate.swift y SceneDelegate.swift integran
+    el ciclo de vida; Assets.xcassets y Base.lproj contienen recursos
+    e interfaces de arranque; Runner.xcodeproj y Runner.xcworkspace
+    guardan la configuración del proyecto.
+
+  web\index.html: documento HTML donde se inicia Flutter web.
+  web\manifest.json: metadatos de la app web instalable.
+  web\favicon.png y web\icons\: iconos web.
+
+Archivos generados:
+  build\ y .dart_tool\ contienen resultados de compilación o herramientas.
+  __pycache__\ contiene bytecode de Python. No son el lugar habitual
+  para modificar el comportamiento de la aplicación.
+
+En la raíz del repositorio:
+  README.md: instrucciones generales y de ejecución.
+  .gitignore: indica archivos que Git debe ignorar.
+  .gitattributes: reglas de tratamiento de archivos para Git.
+  The_Watchlist_Requerimientos_Movil.pdf: documento de requerimientos.
+
+
+14. FLUJOS COMPLETOS
+============================================================
+
+A. Iniciar sesión
+  PantallaLogin lee los TextEditingController -> llama a AuthProvider ->
+  el servicio hace POST /auth/login -> la API verifica credenciales ->
+  devuelve usuario y token -> la app guarda token y actualiza el estado ->
+  navega al inicio. Si hay error, la pantalla lo muestra.
+
+B. Crear publicación
+  El formulario recoge título, contenido, película o serie y otros datos.
+  Si se elige imagen, image_picker entrega un XFile. El servicio lee sus
+  bytes y crea una petición multipart; no necesita una ruta local en web.
+  La API comprueba la extensión aceptada, guarda el archivo, crea Blog y
+  devuelve la publicación. Al regresar, el inicio vuelve a cargar el feed.
+  Un borrador usa estatus 0 y no aparece en el listado público normal.
+  En Mi perfil -> Mis publicaciones se puede abrir el borrador y
+  publicarlo. La imagen no se cambia desde el formulario de edición.
+
+C. Consultar contenido
+  Inicio pide el feed con listarPublicaciones. El backend consulta las
+  publicaciones visibles, calcula datos como promedio y responde.
+  Flutter convierte el JSON a Publicacion y PostCard muestra cada resumen.
+  Al abrir una publicación se consultan su detalle y comentarios.
+
+D. Carrito y pedido
+  Tienda consulta productos -> el usuario abre uno -> agrega cantidad ->
+  la API valida producto y stock -> el carrito muestra elementos y total ->
+  checkout envía datos de entrega -> la API crea Pedido y PedidoItem.
+  El pago es una simulación: no hace un cobro real. Cuando se aprueba,
+  el backend vuelve a comprobar existencias, las descuenta, registra el
+  pago y vacía el carrito. Un pago rechazado conserva el carrito.
+  Para carrito con productos, envío cuesta 99 si subtotal es menor a 500;
+  desde 500 es gratis. Un carrito vacío no cobra envío.
+
+E. Mensajes
+  PantallaMensajes lista conversaciones y busca personas por nombre.
+  La búsqueda espera brevemente antes de consultar y descarta resultados
+  antiguos. La API verifica que los participantes sean válidos.
+  PantallaConversacion consulta mensajes cada cinco segundos y cancela el
+  temporizador al cerrarse. La API verifica que el usuario pertenezca
+  al chat y marca como leídos mensajes recibidos al consultarlos.
+
+F. Administración
+  La interfaz comprueba si el rol es administrador y muestra pestañas.
+  Cada acción llama a la API. La API vuelve a comprobar el rol con
+  requiere_admin antes de modificar usuarios, contenido o productos.
+
+
+15. PRUEBAS, EJECUCIÓN Y SOLUCIÓN DE PROBLEMAS
+============================================================
+
+Una prueba comprueba un comportamiento esperado. Una prueba unitaria
+puede aislar una función; una prueba de widgets monta parte de la
+interfaz y simula acciones; una integración comprueba varias piezas.
+Un servicio falso en las pruebas imita respuestas sin usar la red real.
+Que exista un archivo de prueba no demuestra que haya pasado: hay que
+ejecutarlo y revisar el resultado.
+
+Pasos generales en Windows PowerShell, desde la raíz del proyecto:
+
+  1. Enciende MySQL. Crea o configura la base según README.md. Para una
+     instalación nueva, db.sql puede importar el esquema; recuerda que
+     elimina y recrea blog_db. No lo ejecutes sobre datos sin respaldo.
+
+  2. En una terminal:
+       cd .\backend_API
+       python -m venv venv
+       .\venv\Scripts\python.exe -m pip install -r requirements.txt
+       .\venv\Scripts\python.exe iniciar_backend.py
+
+     La creación del entorno e instalación se hacen al preparar el
+     proyecto; en ejecuciones posteriores usa el último comando.
+
+  3. Abre http://127.0.0.1:8000/health y /docs. Deja esa terminal abierta.
+
+  4. En otra terminal, desde la raíz:
+       cd .\the_watchlist
+       flutter pub get
+       flutter devices
+       flutter run -d edge
+
+     También puedes elegir otro dispositivo disponible. El README de
+     Flutter explica cómo usar --no-web-resources-cdn en web.
+
+  5. Detén cada proceso con Ctrl+C en su terminal.
+
+Direcciones en desarrollo:
+  Navegador en la misma PC: por defecto http://127.0.0.1:8000.
+  Emulador Android: por defecto http://10.0.2.2:8000.
+  Teléfono físico: usa la IP local de la computadora y configura
+  API_BASE_URL con --dart-define; ambos deben tener conectividad.
+
+Pruebas:
+  Desde the_watchlist: flutter test
+  Desde backend_API:
+    .\venv\Scripts\python.exe -m unittest test_publicaciones
+    .\venv\Scripts\python.exe -m unittest test_pedidos_mensajes
+  Para analizar Dart desde the_watchlist: flutter analyze
+
+Problemas comunes:
+  - La app no conecta: revisa que API y MySQL estén activos, /health,
+    la URL correspondiente al dispositivo y los mensajes de la terminal.
+  - Error de BD: comprueba nombre, usuario, contraseña, puerto y servicio.
+    No borres ni reimportes la base sin comprender las consecuencias.
+  - Pantalla blanca web: revisa la consola del navegador y la terminal
+    de Flutter; también consulta las indicaciones web del README.
+  - No aparece una publicación: comprueba si es borrador, si se guardó
+    correctamente y si el listado se actualizó.
+  - Imagen rechazada: la API acepta extensiones jpg, jpeg, png y webp.
+  - Sesión inválida tras reiniciar API: revisa que JWT_SECRET_KEY sea
+    estable; después vuelve a iniciar sesión si corresponde.
+
+No compartas contraseñas, tokens, claves JWT ni el contenido de .env al
+pedir ayuda. Copia solo el mensaje de error necesario.
+
+
+16. GLOSARIO Y ORDEN RECOMENDADO PARA ESTUDIAR
+============================================================
+
+API: contrato para que programas intercambien información.
+Backend: lógica del servidor.
+Frontend: interfaz y lógica que usa el usuario.
+Endpoint: ruta y método que atienden una solicitud.
+HTTP: protocolo de comunicación entre cliente y servidor.
+JSON: formato textual de intercambio de datos.
+ORM: herramienta que relaciona objetos con tablas de una base de datos.
+SDK: conjunto de herramientas para desarrollar con una plataforma.
+Framework: conjunto de herramientas y estructura para crear aplicaciones.
+Dependencia: paquete que el proyecto usa.
+Estado: información que puede variar durante la ejecución.
+Widget: descripción de un componente de la interfaz Flutter.
+Callback: función que se pasa para ejecutar una acción después.
+Token: credencial usada para identificar una sesión.
+Hash: resultado de una transformación unidireccional de datos.
+JWT: formato de token firmado con datos y vencimiento.
+Modelo: representación estructurada de datos.
+Schema: forma esperada para validar o devolver datos.
+Migración: cambio organizado de estructura de base de datos; crear tablas
+           si no existen no equivale a actualizar automáticamente todas
+           las tablas existentes.
+Linter: herramienta que detecta patrones problemáticos o estilo.
+
+Orden sugerido:
+  1. Ejecuta la aplicación y reconoce las pantallas.
+  2. Lee esta guía de las secciones 1 a 4.
+  3. Abre lib\main.dart y sigue el arranque a PantallaLogin / Inicio.
+  4. Lee una pantalla sencilla y observa build, widgets y callbacks.
+  5. Sigue una llamada hacia services\api_service.dart.
+  6. Busca su ruta en backend_API\main.py.
+  7. Revisa el schema y el modelo de base usados por la ruta.
+  8. Lee las pruebas relacionadas y ejecuta una por vez.
+  9. Vuelve a esta guía cuando encuentres un término desconocido.
+
+FIN DE LA GUÍA

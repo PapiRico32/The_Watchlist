@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 
 class CategoryChip extends StatelessWidget {
+  /// Etiqueta visual seleccionable usada para filtrar categorías.
   const CategoryChip({
     super.key,
     required this.text,

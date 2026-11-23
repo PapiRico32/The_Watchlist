@@ -7,6 +7,7 @@ import '../models/models.dart';
 import 'pantalla_producto.dart';
 
 class PantallaTienda extends StatefulWidget {
+  /// Catálogo interactivo que filtra productos y consulta el stock disponible.
   const PantallaTienda({super.key});
 
   @override

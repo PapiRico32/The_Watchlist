@@ -8,6 +8,7 @@ import '../models/models.dart';
 import 'pantalla_pedido_detalle.dart';
 
 class PantallaPedidos extends StatefulWidget {
+  /// Consulta y muestra el historial de pedidos del usuario.
   const PantallaPedidos({super.key});
 
   @override

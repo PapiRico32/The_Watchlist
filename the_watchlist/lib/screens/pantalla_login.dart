@@ -9,6 +9,7 @@ import '../widgets/custom_text_field.dart';
 import '../widgets/primary_button.dart';
 
 class PantallaLogin extends StatefulWidget {
+  /// StatefulWidget porque controla textos, errores y estado de inicio de sesión.
   const PantallaLogin({super.key});
 
   @override
@@ -16,12 +17,15 @@ class PantallaLogin extends StatefulWidget {
 }
 
 class _PantallaLoginState extends State<PantallaLogin> {
+  // Controllers mantienen el texto escrito sin que Flutter pierda el valor.
   final _correo = TextEditingController();
   final _password = TextEditingController();
+  // Mensaje visible cuando falta información o falla el servidor.
   String? _error;
 
   @override
   void dispose() {
+    // Los controllers deben liberarse para evitar fugas de memoria.
     _correo.dispose();
     _password.dispose();
     super.dispose();

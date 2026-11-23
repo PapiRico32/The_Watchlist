@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 
 class AuthCard extends StatelessWidget {
+  /// Recipiente estilizado para agrupar los campos de login o registro.
   const AuthCard({super.key, required this.child});
 
   final Widget child;

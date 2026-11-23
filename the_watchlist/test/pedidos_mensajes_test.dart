@@ -12,6 +12,7 @@ import 'package:the_watchlist/services/api_service.dart';
 import 'package:the_watchlist/services/auth_provider.dart';
 
 class ApiFlujosFake extends ApiService {
+  /// Implementación falsa para probar pedidos y mensajes de extremo a extremo.
   final solicitudes = <String, Completer<List<UsuarioMensaje>>>{};
   int? destinatario;
   bool pagado = false;

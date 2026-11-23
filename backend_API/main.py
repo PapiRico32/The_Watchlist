@@ -125,13 +125,20 @@ _token_expiration_minutes = int(os.getenv("JWT_EXPIRATION_MINUTES", "10080"))
 
 password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+oauth2_opcional = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
 
 
 def hash_password(password: str) -> str:
+    """Convierte una contraseña en un hash seguro antes de almacenarla.
+
+    El resultado incluye una clave aleatoria llamada salt, por lo que dos
+    contraseñas iguales pueden producir hashes diferentes.
+    """
     return password_context.hash(password)
 
 
 def verificar_password(password: str, password_hash: str) -> bool:
+    """Comprueba una contraseña sin guardar la contraseña original."""
     if password_hash.startswith("pbkdf2$"):
         try:
             _, salt, digest = password_hash.split("$", 2)
@@ -145,6 +152,7 @@ def verificar_password(password: str, password_hash: str) -> bool:
 
 
 def crear_token(datos: dict[str, Any]) -> str:
+    """Crea un token JWT firmado que identifica al usuario durante la sesión."""
     contenido = datos.copy()
     contenido["exp"] = datetime.now(timezone.utc) + timedelta(
         minutes=_token_expiration_minutes
@@ -156,6 +164,12 @@ def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
 ) -> Usuario:
+    """Extrae el usuario autenticado desde el token Bearer de la solicitud.
+
+    FastAPI ejecuta esta función antes de las rutas que la solicitan como
+    dependencia. Si el token vence, fue firmado incorrectamente o el usuario
+    fue eliminado/suspendido, la solicitud responde con error 401.
+    """
     no_autorizado = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="La sesión no es válida o ha expirado",
@@ -260,6 +274,11 @@ def actualizar_perfil(
 # Publicaciones, valoraciones, comentarios, reacciones y reportes.
 
 def serializar_publicacion(p: Blog, db: Session):
+    """Convierte una publicación de la base de datos a datos JSON.
+
+    También calcula estadísticas que no están guardadas como columnas
+    directas: promedio de estrellas y cantidad de valoraciones/comentarios.
+    """
     promedio = db.query(func.avg(Valoracion.estrellas)).filter(
         Valoracion.blog_id == p.id_blog
     ).scalar() or 0
@@ -329,8 +348,26 @@ def listar(
     return resultado
 
 
+@app.get("/blog/mis-publicaciones", response_model=List[PublicacionOut], tags=["Blog"])
+def mis_publicaciones(
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(get_current_user),
+):
+    publicaciones = (
+        db.query(Blog)
+        .filter(Blog.usr_id == usuario.id_usr, Blog.estatus.in_([0, 1]))
+        .order_by(Blog.fecha.desc(), Blog.id_blog.desc())
+        .all()
+    )
+    return [serializar_publicacion(publicacion, db) for publicacion in publicaciones]
+
+
 @app.get("/blog/publicaciones/{id_blog}", response_model=PublicacionOut, tags=["Blog"])
-def obtener(id_blog: int, db: Session = Depends(get_db)):
+def obtener(
+    id_blog: int,
+    db: Session = Depends(get_db),
+    token: Optional[str] = Depends(oauth2_opcional),
+):
     publicacion = db.query(Blog).filter(
         Blog.id_blog == id_blog,
         Blog.estatus.in_([0, 1])
@@ -338,6 +375,13 @@ def obtener(id_blog: int, db: Session = Depends(get_db)):
 
     if not publicacion:
         raise HTTPException(status_code=404, detail="Publicacion no encontrada")
+
+    if publicacion.estatus == 0:
+        if token is None:
+            raise HTTPException(status_code=404, detail="Publicacion no encontrada")
+        usuario = get_current_user(token, db)
+        if publicacion.usr_id != usuario.id_usr:
+            raise HTTPException(status_code=404, detail="Publicacion no encontrada")
 
     return serializar_publicacion(publicacion, db)
 

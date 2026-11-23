@@ -10,6 +10,7 @@ import '../services/auth_provider.dart';
 import 'pantalla_conversacion.dart';
 
 class PantallaMensajes extends StatefulWidget {
+  /// Lista las conversaciones privadas y permite iniciar una nueva.
   const PantallaMensajes({super.key});
 
   @override

@@ -7,6 +7,7 @@ import '../models/models.dart';
 import 'pantalla_carrito.dart';
 
 class PantallaProducto extends StatefulWidget {
+  /// Muestra un producto concreto y permite cambiar cantidad o añadirlo al carrito.
   final int id;
 
   const PantallaProducto({super.key, required this.id});

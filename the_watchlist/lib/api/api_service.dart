@@ -10,6 +10,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/models.dart';
 
 class ApiException implements Exception {
+  /// Representa una respuesta fallida de la API alternativa o compartida.
   final String mensaje;
   ApiException(this.mensaje);
 
@@ -18,6 +19,7 @@ class ApiException implements Exception {
 }
 
 class ApiService {
+  /// Cliente HTTP alternativo usado por pantallas o pruebas existentes.
   // Para emulador Android usar 10.0.2.2; para dispositivo fisico usar IP de la PC.
   static const String baseUrl = 'http://10.0.2.2:8000';
 

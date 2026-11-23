@@ -6,6 +6,7 @@ import '../services/auth_provider.dart';
 import 'pantalla_pedido_detalle.dart';
 
 class PantallaCheckout extends StatefulWidget {
+  /// Recopila la dirección de entrega y prepara la creación del pedido.
   const PantallaCheckout({super.key});
 
   @override

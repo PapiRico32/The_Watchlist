@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 
 class PrimaryButton extends StatelessWidget {
+  /// Botón morado reutilizable que puede mostrar progreso y estar deshabilitado.
   const PrimaryButton({
     super.key,
     required this.text,

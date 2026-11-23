@@ -5,6 +5,7 @@ import 'api_service.dart';
 import '../models/models.dart';
 
 class AuthProvider extends ChangeNotifier {
+  /// Estado compartido de autenticación que avisa a los Widgets cuando cambia.
   final ApiService api;
 
   Usuario? _usuario;

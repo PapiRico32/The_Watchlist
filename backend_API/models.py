@@ -18,11 +18,21 @@ import datetime
 
 
 class Usuario(Base):
+    """Representa una cuenta registrada en la aplicación.
+
+    Cada fila guarda el perfil y las credenciales de un usuario. La clase se
+    conecta con otros modelos mediante ForeignKey, por ejemplo para conocer
+    todas las publicaciones que creó una persona.
+    """
     __tablename__ = "usuario"
 
+    # Identificador único generado automáticamente por la base de datos.
     id_usr = Column(Integer, primary_key=True, autoincrement=True)
+    # Nombre mostrado en publicaciones y conversaciones.
     nom_usr = Column(String(100), nullable=False)
+    # El correo debe ser único: no puede existir dos cuentas con el mismo valor.
     mail = Column(String(150), unique=True, nullable=False)
+    # Guarda únicamente el hash cifrado de la contraseña, nunca texto visible.
     password_hash = Column("pass", String(255), nullable=False)
     avatar = Column(String(255), nullable=True)
     bio = Column(String(300), nullable=True)
@@ -37,6 +47,11 @@ class Usuario(Base):
 
 
 class Blog(Base):
+    """Representa una publicación hecha por un usuario.
+
+    Puede ser una reseña, recomendación, teoría o análisis sobre una película
+    o serie. `usr_id` indica quién escribió la publicación.
+    """
     __tablename__ = "blog"
 
     id_blog = Column(Integer, primary_key=True, autoincrement=True)
@@ -61,6 +76,11 @@ class Blog(Base):
 
 
 class Valoracion(Base):
+    """Guarda la puntuación de estrellas que un usuario dio a una publicación.
+
+    La restricción única impide que la misma persona vote varias veces sobre
+    la misma publicación.
+    """
     __tablename__ = "valoracion"
 
     id_val = Column(Integer, primary_key=True, autoincrement=True)
@@ -80,6 +100,7 @@ class Valoracion(Base):
 
 
 class Sticker(Base):
+    """Representa una imagen pequeña que puede usarse en comentarios o mensajes."""
     __tablename__ = "sticker"
 
     id_stk = Column(Integer, primary_key=True, autoincrement=True)
@@ -88,6 +109,11 @@ class Sticker(Base):
 
 
 class Comentario(Base):
+    """Representa un comentario escrito debajo de una publicación.
+
+    Un comentario puede pertenecer a otro comentario mediante `padre_id`,
+    lo que permite crear respuestas dentro de una conversación.
+    """
     __tablename__ = "comentarios"
 
     id_com = Column(Integer, primary_key=True, autoincrement=True)
@@ -114,6 +140,7 @@ class Comentario(Base):
 
 
 class Reaccion(Base):
+    """Guarda una reacción de texto o emoción sobre un comentario."""
     __tablename__ = "reaccion"
 
     id_rea = Column(Integer, primary_key=True, autoincrement=True)
@@ -132,6 +159,7 @@ class Reaccion(Base):
 
 
 class ReaccionStickerComentario(Base):
+    """Registra que un usuario añadió un sticker a un comentario."""
     __tablename__ = "reaccion_sticker_comentario"
 
     id_reaccion = Column(Integer, primary_key=True, autoincrement=True)
@@ -149,6 +177,7 @@ class ReaccionStickerComentario(Base):
 
 
 class Conversacion(Base):
+    """Relaciona a los dos usuarios que participan en una conversación privada."""
     __tablename__ = "conversacion"
 
     id_conv = Column(Integer, primary_key=True, autoincrement=True)
@@ -163,6 +192,11 @@ class Conversacion(Base):
 
 
 class Mensaje(Base):
+    """Representa un mensaje enviado dentro de una conversación.
+
+    Un mensaje pertenece a una conversación y a su autor. `leido` indica si
+    el destinatario ya abrió o procesó el mensaje.
+    """
     __tablename__ = "mensaje"
 
     id_msg = Column(Integer, primary_key=True, autoincrement=True)
@@ -183,6 +217,7 @@ class Mensaje(Base):
 
 
 class ReaccionStickerMensaje(Base):
+    """Registra el sticker que un usuario añadió a un mensaje."""
     __tablename__ = "reaccion_sticker_mensaje"
 
     id_reaccion = Column(Integer, primary_key=True, autoincrement=True)
@@ -200,6 +235,7 @@ class ReaccionStickerMensaje(Base):
 
 
 class Producto(Base):
+    """Representa un artículo disponible dentro de la tienda."""
     __tablename__ = "producto"
 
     id_prod = Column(Integer, primary_key=True, autoincrement=True)
@@ -217,6 +253,11 @@ class Producto(Base):
 
 
 class Carrito(Base):
+    """Contiene los productos que un usuario seleccionó antes de comprar.
+
+    `usr_id` es único, por lo que cada usuario tiene un solo carrito.
+    Los elementos individuales se guardan en la tabla `CarritoItem`.
+    """
     __tablename__ = "carrito"
 
     id_car = Column(Integer, primary_key=True, autoincrement=True)
@@ -231,6 +272,7 @@ class Carrito(Base):
 
 
 class CarritoItem(Base):
+    """Producto concreto dentro de un carrito y la cantidad elegida."""
     __tablename__ = "carrito_item"
 
     id_item = Column(Integer, primary_key=True, autoincrement=True)
@@ -247,6 +289,7 @@ class CarritoItem(Base):
 
 
 class Pedido(Base):
+    """Pedido confirmado por un usuario con dirección y estados de seguimiento."""
     __tablename__ = "pedido"
 
     id_ped = Column(Integer, primary_key=True, autoincrement=True)
@@ -275,6 +318,11 @@ class Pedido(Base):
 
 
 class PedidoItem(Base):
+    """Copia de un producto incluido en un pedido.
+
+    Guarda nombre y precio en el momento de la compra para que el pedido siga
+    mostrando la información aunque el producto original cambie después.
+    """
     __tablename__ = "pedido_item"
 
     id_item = Column(Integer, primary_key=True, autoincrement=True)
@@ -290,6 +338,7 @@ class PedidoItem(Base):
 
 
 class Pago(Base):
+    """Representa el intento de pago asociado a un pedido."""
     __tablename__ = "pago"
 
     id_pago = Column(Integer, primary_key=True, autoincrement=True)
@@ -303,6 +352,7 @@ class Pago(Base):
 
 
 class Reporte(Base):
+    """Guarda que un usuario señaló contenido o una cuenta como problemática."""
     __tablename__ = "reporte"
 
     id_rep = Column(Integer, primary_key=True, autoincrement=True)

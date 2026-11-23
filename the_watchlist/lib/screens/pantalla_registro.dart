@@ -9,6 +9,7 @@ import '../widgets/custom_text_field.dart';
 import '../widgets/primary_button.dart';
 
 class PantallaRegistro extends StatefulWidget {
+  /// Pantalla interactiva que mantiene los datos de varios campos de registro.
   const PantallaRegistro({super.key});
 
   @override

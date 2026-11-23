@@ -1,7 +1,8 @@
 /// Pantalla para buscar y explorar usuarios y publicaciones.
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-import '../services/api_service.dart';
+import '../services/auth_provider.dart';
 
 import '../models/models.dart';
 import '../widgets/category_chip.dart';
@@ -9,6 +10,7 @@ import '../widgets/post_card.dart';
 import 'pantalla_publicacion.dart';
 
 class PantallaExplorar extends StatefulWidget {
+  /// Permite buscar publicaciones o usuarios y conserva filtros y resultados.
   const PantallaExplorar({super.key});
 
   @override
@@ -42,7 +44,7 @@ class _PantallaExplorarState extends State<PantallaExplorar> {
     });
 
     try {
-      final datos = await ApiService().listarPublicaciones(
+      final datos = await context.read<AuthProvider>().api.listarPublicaciones(
         q: _busqueda.text,
         tipo: _tipo,
         orden: _orden,

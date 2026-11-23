@@ -12,6 +12,7 @@ String textoSinImagenes(String contenido) =>
     contenido.replaceAll(_imagenPublicacion, '').trim();
 
 class ContenidoPublicacion extends StatelessWidget {
+  /// Renderiza el texto de una publicación sin mostrar etiquetas HTML o imágenes.
   const ContenidoPublicacion({super.key, required this.contenido});
 
   final String contenido;

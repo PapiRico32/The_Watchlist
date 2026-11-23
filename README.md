@@ -141,7 +141,9 @@ expongas directamente a Internet.
    también puedes escribir al autor desde una publicación.
 4. En **Tienda**, agrega productos al carrito y completa los datos de entrega.
    El pago es de prueba: no se realiza ningún cobro real.
-5. En **Mi perfil** puedes editar tus datos y consultar tus pedidos.
+5. En **Mi perfil** puedes editar tus datos, consultar tus pedidos y abrir
+   **Mis publicaciones** para ver tus publicaciones y editar o publicar tus
+   borradores. La imagen no se puede cambiar al editar una publicación.
 
 ### Administración
 

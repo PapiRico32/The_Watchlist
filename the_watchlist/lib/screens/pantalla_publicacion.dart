@@ -12,6 +12,7 @@ import 'pantalla_conversacion.dart';
 import 'pantalla_crear_publicacion.dart';
 
 class PantallaPublicacion extends StatefulWidget {
+  /// Muestra una publicación completa, valoraciones y comentarios.
   final int id;
 
   const PantallaPublicacion({super.key, required this.id});

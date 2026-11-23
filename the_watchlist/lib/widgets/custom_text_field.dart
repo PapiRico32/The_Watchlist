@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 
 class CustomTextField extends StatelessWidget {
+  /// Campo reutilizable que aplica iconos, etiqueta y teclado al TextField.
   const CustomTextField({
     super.key,
     required this.controller,

@@ -6,10 +6,14 @@ import '../services/api_service.dart';
 import '../services/auth_provider.dart';
 
 import 'pantalla_login.dart';
+import 'pantalla_mis_publicaciones.dart';
 import 'pantalla_pedidos.dart';
 
 class PantallaPerfil extends StatelessWidget {
-  const PantallaPerfil({super.key});
+  /// Muestra información del usuario y acciones que no requieren estado propio.
+  const PantallaPerfil({super.key, this.onPublicacionesActualizadas});
+
+  final VoidCallback? onPublicacionesActualizadas;
 
   // Si el perfil no carga, revisar obtenerPerfil y token.
   @override
@@ -116,6 +120,17 @@ class PantallaPerfil extends StatelessWidget {
                 );
               },
             );
+          },
+        ),
+        ListTile(
+          leading: const Icon(Icons.article_outlined),
+          title: const Text('Mis publicaciones'),
+          onTap: () async {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const PantallaMisPublicaciones()),
+            );
+            if (context.mounted) onPublicacionesActualizadas?.call();
           },
         ),
         ListTile(

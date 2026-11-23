@@ -11,11 +11,14 @@ import 'screens/pantalla_registro.dart';
 import 'screens/pantalla_publicacion.dart';
 
 void main() {
+  // Asegura que el sistema de Widgets esté listo antes de iniciar la app.
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Construye el árbol principal y muestra la pantalla definida por este app.
   runApp(const EntreEscenasApp());
 }
 
+/// Widget raíz: crea el estado global, configura el tema y registra las rutas.
 class EntreEscenasApp extends StatelessWidget {
   const EntreEscenasApp({super.key});
 
@@ -184,6 +187,7 @@ class EntreEscenasApp extends StatelessWidget {
 }
 
 class PantallaArranque extends StatefulWidget {
+  /// Carga la sesión guardada y decide si mostrar login o el inicio.
   const PantallaArranque({super.key});
 
   @override
@@ -191,6 +195,7 @@ class PantallaArranque extends StatefulWidget {
 }
 
 class _PantallaArranqueState extends State<PantallaArranque> {
+  // Future que permite a FutureBuilder mostrar carga, éxito o error.
   late Future<void> _cargaSesion;
 
   @override
@@ -278,6 +283,7 @@ class _PantallaArranqueState extends State<PantallaArranque> {
 }
 
 class PantallaErrorRuta extends StatelessWidget {
+  // Texto explicativo mostrado cuando la ruta o el argumento son inválidos.
   final String mensaje;
 
   const PantallaErrorRuta({super.key, required this.mensaje});

@@ -11,6 +11,11 @@ load_dotenv()
 
 # Construye la URL: primero usa DATABASE_URL y después las variables MySQL.
 def _crear_url_base_datos() -> str | URL:
+    """Selecciona la conexión configurada por el usuario o usa MySQL local.
+
+    Si existe DATABASE_URL, permite usar MySQL, SQLite o otro motor compatible.
+    Sin esa variable, construye la dirección a partir de variables MYSQL_*.
+    """
     url_configurada = os.getenv("DATABASE_URL")
     if url_configurada:
         return url_configurada

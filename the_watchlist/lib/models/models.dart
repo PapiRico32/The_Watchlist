@@ -1,5 +1,6 @@
 /// Modelos de datos utilizados por las pantallas y servicios de Flutter.
 class Usuario {
+  /// Convierte al objeto JSON recibido de la API en datos manejables por Flutter.
   final int id;
   final String nombre;
   final String correo;
@@ -32,6 +33,7 @@ class Usuario {
 }
 
 class Publicacion {
+  /// Contiene toda la información necesaria para pintar una publicación.
   final int id;
   final int idUsuario;
   final String titulo;
@@ -91,6 +93,7 @@ class Publicacion {
 }
 
 class Comentario {
+  /// Representa un comentario, su autor y los datos visuales asociados.
   final int id;
   final String texto;
   final int? stickerId;
@@ -142,6 +145,7 @@ class Comentario {
 }
 
 class Sticker {
+  /// Describe un sticker disponible en la aplicación.
   final int id;
   final String nombre;
   final String archivo;
@@ -158,6 +162,7 @@ class Sticker {
 }
 
 class UsuarioMensaje {
+  /// Usuario resumido usado al buscar destinatarios de mensajes.
   final int id;
   final String nombre;
   final String? avatar;
@@ -172,6 +177,7 @@ class UsuarioMensaje {
 }
 
 class Conversacion {
+  /// Datos resumidos de una conversación para el listado de chats.
   final int id;
   final int otroId;
   final String otroNombre;
@@ -198,6 +204,7 @@ class Conversacion {
 }
 
 class Mensaje {
+  /// Contenido de un mensaje recibido desde el backend.
   final int id;
   final int idConversacion;
   final int idUsuario;
@@ -230,6 +237,7 @@ class Mensaje {
 }
 
 class Producto {
+  /// Información de un producto disponible en la tienda.
   final int id;
   final String nombre;
   final String? descripcion;
@@ -262,6 +270,7 @@ class Producto {
 }
 
 class ItemCarrito {
+  /// Une un producto con la cantidad elegida dentro del carrito.
   final int id;
   final Producto producto;
   final int cantidad;
@@ -282,6 +291,7 @@ class ItemCarrito {
 }
 
 class Carrito {
+  /// Contiene los elementos y totales calculados del carrito.
   final int id;
   final List<ItemCarrito> items;
   final double subtotal;
@@ -310,6 +320,7 @@ class Carrito {
 }
 
 class Pedido {
+  /// Guarda el resumen de un pedido y su estado de pago y envío.
   final int id;
   final double total;
   final double envio;

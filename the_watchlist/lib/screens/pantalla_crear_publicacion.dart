@@ -1,14 +1,14 @@
 /// Pantalla para redactar una publicación y adjuntar una imagen.
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
 
-import '../services/api_service.dart';
+import '../services/auth_provider.dart';
 import '../models/models.dart';
 
 
 class PantallaCrearPublicacion extends StatefulWidget {
+  /// Formulario interactivo para crear o editar una publicación.
   final Publicacion? publicacion;
 
   const PantallaCrearPublicacion({super.key, this.publicacion});
@@ -28,7 +28,7 @@ class _PantallaCrearPublicacionState extends State<PantallaCrearPublicacion> {
   String _tipo = 'resena';
   String _medioTipo = 'pelicula';
   bool _spoilers = false;
-  File? _imagen;
+  XFile? _imagen;
   bool _cargando = false;
 
   bool get _editando => widget.publicacion != null;
@@ -50,11 +50,15 @@ class _PantallaCrearPublicacionState extends State<PantallaCrearPublicacion> {
   }
 
   Future<void> _seleccionarImagen() async {
-    final picker = ImagePicker();
-    final imagen = await picker.pickImage(source: ImageSource.gallery);
-
-    if (imagen != null) {
-      setState(() => _imagen = File(imagen.path));
+    try {
+      final imagen = await ImagePicker().pickImage(source: ImageSource.gallery);
+      if (!mounted || imagen == null) return;
+      setState(() => _imagen = imagen);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo seleccionar la imagen: $error')),
+      );
     }
   }
 
@@ -70,7 +74,7 @@ class _PantallaCrearPublicacionState extends State<PantallaCrearPublicacion> {
     setState(() => _cargando = true);
 
     try {
-      final api = ApiService();
+      final api = context.read<AuthProvider>().api;
       if (_editando) {
         await api.actualizarPublicacion(
           widget.publicacion!.id,
@@ -100,12 +104,13 @@ class _PantallaCrearPublicacionState extends State<PantallaCrearPublicacion> {
       }
 
       if (!mounted) return;
-      Navigator.pop(context);
+      Navigator.pop(context, true);
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
-      setState(() => _cargando = false);
+      if (mounted) setState(() => _cargando = false);
     }
   }
 
@@ -184,18 +189,21 @@ class _PantallaCrearPublicacionState extends State<PantallaCrearPublicacion> {
               decoration: const InputDecoration(labelText: 'Contenido'),
             ),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                ElevatedButton.icon(
-                  onPressed: _seleccionarImagen,
-                  icon: const Icon(Icons.image),
-                  label: const Text('Imagen'),
-                ),
-                const SizedBox(width: 12),
-                if (_imagen != null)
-                  const Icon(Icons.check_circle, color: Colors.green),
-              ],
-            ),
+            if (_editando)
+              const Text('La imagen no se puede cambiar al editar.')
+            else
+              Row(
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _seleccionarImagen,
+                    icon: const Icon(Icons.image),
+                    label: const Text('Imagen'),
+                  ),
+                  const SizedBox(width: 12),
+                  if (_imagen != null)
+                    const Icon(Icons.check_circle, color: Colors.green),
+                ],
+              ),
             const SizedBox(height: 12),
             CheckboxListTile(
               value: _spoilers,
@@ -206,7 +214,11 @@ class _PantallaCrearPublicacionState extends State<PantallaCrearPublicacion> {
             ElevatedButton.icon(
               onPressed: _cargando ? null : () => _publicar(false),
               icon: const Icon(Icons.send),
-              label: Text(_editando ? 'Actualizar' : 'Publicar'),
+              label: Text(
+                _editando && widget.publicacion!.estatus != 0
+                    ? 'Actualizar'
+                    : 'Publicar',
+              ),
             ),
             const SizedBox(height: 8),
             OutlinedButton.icon(

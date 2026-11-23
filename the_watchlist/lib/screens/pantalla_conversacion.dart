@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../models/models.dart';
 import '../services/auth_provider.dart';
 class PantallaConversacion extends StatefulWidget {
+  /// Representa el chat individual y mantiene los mensajes escritos por el usuario.
   final int id;
   final String nombre;
 

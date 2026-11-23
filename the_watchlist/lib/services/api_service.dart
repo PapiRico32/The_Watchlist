@@ -2,15 +2,16 @@
 import 'dart:async';
 
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../models/models.dart';
 
 class ApiException implements Exception {
+  /// Error HTTP con el mensaje que debe entender el usuario.
   final String mensaje;
   ApiException(this.mensaje);
 
@@ -19,6 +20,7 @@ class ApiException implements Exception {
 }
 
 class _TimeoutClient extends http.BaseClient {
+  /// Interceptor HTTP que cancela solicitudes que exceden el tiempo límite.
   final http.Client _client = http.Client();
 
   @override
@@ -38,6 +40,7 @@ class _TimeoutClient extends http.BaseClient {
 }
 
 class ApiService {
+  /// Encapsula todas las llamadas HTTP entre Flutter y el backend.
   static const String _baseUrlConfigurada = String.fromEnvironment(
     'API_BASE_URL',
   );
@@ -50,7 +53,9 @@ class ApiService {
     return kIsWeb ? 'http://127.0.0.1:8000' : 'http://10.0.2.2:8000';
   }
 
-  final http.Client _http = _TimeoutClient();
+  ApiService({http.Client? client}) : _http = client ?? _TimeoutClient();
+
+  final http.Client _http;
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   Future<String?> obtenerToken() async {
@@ -209,6 +214,17 @@ class ApiService {
     return Publicacion.fromJson(datos);
   }
 
+  Future<List<Publicacion>> listarMisPublicaciones() async {
+    final token = await obtenerToken();
+    final response = await _http.get(
+      Uri.parse('$baseUrl/blog/mis-publicaciones'),
+      headers: _headers(token: token),
+    );
+
+    final datos = await _procesar(response);
+    return (datos as List).map((item) => Publicacion.fromJson(item)).toList();
+  }
+
   Future<List<Comentario>> obtenerComentarios(int idPublicacion) async {
     final token = await obtenerToken();
     final response = await _http.get(
@@ -230,7 +246,7 @@ class ApiService {
     String? tags,
     bool spoilers = false,
     bool borrador = false,
-    File? imagen,
+    XFile? imagen,
   }) async {
     final token = await obtenerToken();
     final request = http.MultipartRequest(
@@ -252,7 +268,12 @@ class ApiService {
     });
 
     if (imagen != null) {
-      request.files.add(await http.MultipartFile.fromPath('img', imagen.path));
+      // XFile permite leer imágenes tanto desde el navegador como desde móvil.
+      request.files.add(http.MultipartFile.fromBytes(
+        'img',
+        await imagen.readAsBytes(),
+        filename: imagen.name,
+      ));
     }
 
     final response = await http.Response.fromStream(await _http.send(request));

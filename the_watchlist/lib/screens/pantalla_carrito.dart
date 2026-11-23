@@ -8,6 +8,7 @@ import '../models/models.dart';
 import 'pantalla_checkout.dart';
 
 class PantallaCarrito extends StatefulWidget {
+  /// Lista los elementos del carrito y permite modificar cantidades o eliminarlos.
   const PantallaCarrito({super.key});
 
   @override

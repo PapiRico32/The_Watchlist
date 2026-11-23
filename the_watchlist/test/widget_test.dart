@@ -1,6 +1,7 @@
 /// Pruebas de widgets con implementaciones falsas de la API.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import 'package:the_watchlist/widgets/estrellas.dart';
@@ -9,12 +10,14 @@ import 'package:the_watchlist/screens/pantalla_login.dart';
 import 'package:the_watchlist/screens/pantalla_perfil.dart';
 import 'package:the_watchlist/screens/pantalla_registro.dart';
 import 'package:the_watchlist/screens/pantalla_inicio.dart';
+import 'package:the_watchlist/screens/pantalla_explorar.dart';
 import 'package:the_watchlist/services/api_service.dart';
 import 'package:the_watchlist/services/auth_provider.dart';
 import 'package:the_watchlist/widgets/post_card.dart';
 import 'package:the_watchlist/widgets/contenido_publicacion.dart';
 
 class ApiPerfilFake extends ApiService {
+  /// Sustituye respuestas de perfil para probar Widgets sin servidor real.
   bool fallaAlGuardar = false;
 
   @override
@@ -42,6 +45,7 @@ class ApiPerfilFake extends ApiService {
 }
 
 class ApiAdminFake extends ApiService {
+  /// Simula permisos y datos administrativos para probar el panel de admin.
   ApiAdminFake(this.rol);
 
   final int rol;
@@ -122,7 +126,243 @@ class ApiAdminFake extends ApiService {
   }
 }
 
+class ApiPublicacionesFake extends ApiAdminFake {
+  ApiPublicacionesFake() : super(1);
+
+  final publicaciones = <Publicacion>[];
+  int consultas = 0;
+  bool fallaAlCrear = false;
+
+  @override
+  Future<List<Publicacion>> listarPublicaciones({
+    String? q,
+    String? tipo,
+    String? genero,
+    String orden = 'recientes',
+  }) async {
+    consultas++;
+    return publicaciones.where((publicacion) => publicacion.estatus == 1).toList();
+  }
+
+  @override
+  Future<List<Publicacion>> listarMisPublicaciones() async => List.of(publicaciones);
+
+  @override
+  Future<Publicacion> actualizarPublicacion(
+    int id, {
+    String? titulo,
+    String? contenido,
+    String? medioNombre,
+    String? tipo,
+    String? medioTipo,
+    String? genero,
+    String? tags,
+    bool? spoilers,
+    int? estatus,
+  }) async {
+    final actualizada = Publicacion(
+      id: id,
+      idUsuario: 1,
+      titulo: titulo ?? '',
+      contenido: contenido ?? '',
+      tipo: tipo ?? 'resena',
+      medioTipo: medioTipo ?? 'pelicula',
+      medioNombre: medioNombre ?? '',
+      spoilers: spoilers ?? false,
+      estatus: estatus ?? 0,
+      promedio: 0,
+      totalValoraciones: 0,
+      totalComentarios: 0,
+    );
+    final indice = publicaciones.indexWhere((publicacion) => publicacion.id == id);
+    publicaciones[indice] = actualizada;
+    return actualizada;
+  }
+
+  @override
+  Future<Publicacion> crearPublicacion({
+    required String titulo,
+    required String contenido,
+    required String medioNombre,
+    required String tipo,
+    required String medioTipo,
+    String? genero,
+    String? tags,
+    bool spoilers = false,
+    bool borrador = false,
+    XFile? imagen,
+  }) async {
+    if (fallaAlCrear) throw ApiException('No se pudo guardar');
+    final publicacion = Publicacion(
+      id: 1,
+      idUsuario: 1,
+      titulo: titulo,
+      contenido: contenido,
+      tipo: tipo,
+      medioTipo: medioTipo,
+      medioNombre: medioNombre,
+      spoilers: spoilers,
+      estatus: borrador ? 0 : 1,
+      promedio: 0,
+      totalValoraciones: 0,
+      totalComentarios: 0,
+    );
+    if (!borrador) publicaciones.add(publicacion);
+    return publicacion;
+  }
+}
+
 void main() {
+  testWidgets('el perfil muestra borradores y permite publicarlos', (tester) async {
+    final api = ApiPublicacionesFake();
+    api.publicaciones.add(Publicacion(
+      id: 1,
+      idUsuario: 1,
+      titulo: 'Mi borrador',
+      contenido: 'Mi reseña',
+      tipo: 'resena',
+      medioTipo: 'pelicula',
+      medioNombre: 'Película',
+      spoilers: false,
+      estatus: 0,
+      promedio: 0,
+      totalValoraciones: 0,
+      totalComentarios: 0,
+    ));
+    final auth = AuthProvider(api);
+    await auth.iniciarSesion('ana@example.test', 'password');
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: auth,
+        child: const MaterialApp(home: PantallaInicio()),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Mi borrador'), findsNothing);
+
+    await tester.tap(find.byTooltip('Open navigation menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Mi perfil'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Mis publicaciones'));
+    await tester.pumpAndSettle();
+    expect(find.text('Mi borrador'), findsOneWidget);
+    expect(find.text('Película · Borrador'), findsOneWidget);
+
+    await tester.tap(find.text('Mi borrador'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Publicar'));
+    await tester.tap(find.text('Publicar'));
+    await tester.pumpAndSettle();
+    expect(find.text('Película · Publicada'), findsOneWidget);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Open navigation menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Inicio'));
+    await tester.pumpAndSettle();
+    expect(find.text('Mi borrador'), findsOneWidget);
+  });
+
+  testWidgets('el inicio recarga las publicaciones después de crear una', (
+    tester,
+  ) async {
+    final api = ApiPublicacionesFake();
+    final auth = AuthProvider(api);
+    await auth.iniciarSesion('ana@example.test', 'password');
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: auth,
+        child: const MaterialApp(home: PantallaInicio()),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(api.consultas, 1);
+
+    await tester.tap(find.byTooltip('Crear publicación'));
+    await tester.pumpAndSettle();
+    Finder campo(String etiqueta) => find.byWidgetPredicate(
+      (widget) => widget is TextField && widget.decoration?.labelText == etiqueta,
+    );
+    await tester.enterText(campo('Titulo'), 'Nueva publicación');
+    await tester.enterText(campo('Pelicula o serie'), 'Una película');
+    await tester.ensureVisible(campo('Contenido'));
+    await tester.enterText(campo('Contenido'), 'Una reseña');
+    await tester.ensureVisible(find.text('Publicar'));
+    await tester.tap(find.text('Publicar'));
+    await tester.pumpAndSettle();
+
+    expect(api.consultas, 2);
+    expect(find.text('Nueva publicación'), findsOneWidget);
+  });
+
+  testWidgets('cancelar o fallar al guardar no recarga el inicio', (tester) async {
+    final api = ApiPublicacionesFake()..fallaAlCrear = true;
+    final auth = AuthProvider(api);
+    await auth.iniciarSesion('ana@example.test', 'password');
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: auth,
+        child: const MaterialApp(home: PantallaInicio()),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Crear publicación'));
+    await tester.pumpAndSettle();
+    Finder campo(String etiqueta) => find.byWidgetPredicate(
+      (widget) => widget is TextField && widget.decoration?.labelText == etiqueta,
+    );
+    await tester.enterText(campo('Titulo'), 'Nueva publicación');
+    await tester.ensureVisible(campo('Contenido'));
+    await tester.enterText(campo('Contenido'), 'Una reseña');
+    await tester.ensureVisible(find.text('Publicar'));
+    await tester.tap(find.text('Publicar'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('No se pudo guardar'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(api.consultas, 1);
+    expect(find.text('Nueva publicación'), findsNothing);
+  });
+
+  testWidgets('el botón de inicio abre Explorar dentro de la navegación', (
+    tester,
+  ) async {
+    final auth = AuthProvider(ApiAdminFake(1));
+    await auth.iniciarSesion('ana@example.test', 'password');
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: auth,
+        child: const MaterialApp(home: PantallaInicio()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Explorar publicaciones'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(PantallaExplorar), findsOneWidget);
+    expect(find.text('No se encontraron publicaciones'), findsOneWidget);
+    expect(find.byTooltip('Open navigation menu'), findsOneWidget);
+
+    await tester.enterText(
+      find.byType(TextField),
+      'Película',
+    );
+    await tester.tap(find.byTooltip('Open navigation menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Inicio'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Explorar publicaciones'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Película'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   for (final rol in [1, 2]) {
     testWidgets(
       'la navegación lateral funciona sin barra inferior para rol $rol',

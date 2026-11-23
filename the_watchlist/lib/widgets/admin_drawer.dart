@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../models/models.dart';
 
 class AdminDrawer extends StatelessWidget {
+  /// Panel lateral que muestra datos del usuario y las opciones de navegación.
   const AdminDrawer({
     super.key,
     required this.usuario,

@@ -16,6 +16,7 @@ import 'pantalla_crear_publicacion.dart';
 import 'pantalla_carrito.dart';
 
 class PantallaInicio extends StatefulWidget {
+  /// Contenedor principal con navegación entre inicio, tienda, mensajes y perfil.
   const PantallaInicio({super.key});
 
   @override
@@ -24,21 +25,27 @@ class PantallaInicio extends StatefulWidget {
 
 class _PantallaInicioState extends State<PantallaInicio> {
   int _indice = 0;
+  final _contenidoInicioKey = GlobalKey<_ContenidoInicioState>();
   final List<Widget?> _pantallas = List<Widget?>.filled(6, null);
 
   @override
   void initState() {
     super.initState();
-    _pantallas[0] = const ContenidoInicio();
+    _pantallas[0] = _crearPantalla(0);
   }
 
   Widget _crearPantalla(int indice) {
     return switch (indice) {
-      0 => const ContenidoInicio(),
+      0 => ContenidoInicio(
+        key: _contenidoInicioKey,
+        onExplorar: () => _seleccionar(1),
+      ),
       1 => const PantallaExplorar(),
       2 => const PantallaTienda(),
       3 => const PantallaMensajes(),
-      4 => const PantallaPerfil(),
+      4 => PantallaPerfil(
+        onPublicacionesActualizadas: () => _contenidoInicioKey.currentState?._cargar(),
+      ),
       5 => const PantallaAdmin(),
       _ => const SizedBox.shrink(),
     };
@@ -66,12 +73,7 @@ class _PantallaInicioState extends State<PantallaInicio> {
             IconButton(
               tooltip: 'Crear publicación',
               icon: const Icon(Icons.add_circle_outline),
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const PantallaCrearPublicacion(),
-                ),
-              ),
+              onPressed: _abrirCrearPublicacion,
             ),
           IconButton(
             tooltip: 'Ver carrito',
@@ -129,6 +131,17 @@ class _PantallaInicioState extends State<PantallaInicio> {
     });
   }
 
+  Future<void> _abrirCrearPublicacion() async {
+    final guardada = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const PantallaCrearPublicacion(),
+      ),
+    );
+    if (!mounted || guardada != true) return;
+    await _contenidoInicioKey.currentState?._cargar();
+  }
+
   void _abrirCarrito() {
     Navigator.push(
       context,
@@ -150,7 +163,10 @@ class _PantallaInicioState extends State<PantallaInicio> {
 }
 
 class ContenidoInicio extends StatefulWidget {
-  const ContenidoInicio({super.key});
+  /// Carga y muestra dinámicamente el feed de publicaciones recientes.
+  const ContenidoInicio({super.key, required this.onExplorar});
+
+  final VoidCallback onExplorar;
 
   @override
   State<ContenidoInicio> createState() => _ContenidoInicioState();
@@ -160,6 +176,7 @@ class _ContenidoInicioState extends State<ContenidoInicio> {
   List<Publicacion> _publicaciones = [];
   bool _cargando = true;
   String? _error;
+  int _solicitud = 0;
 
   @override
   void initState() {
@@ -168,20 +185,26 @@ class _ContenidoInicioState extends State<ContenidoInicio> {
   }
 
   Future<void> _cargar() async {
+    final solicitud = ++_solicitud;
     setState(() => _error = null);
     try {
       final datos = await context.read<AuthProvider>().api.listarPublicaciones();
-      if (!mounted) return;
+      if (!mounted || solicitud != _solicitud) return;
       setState(() {
         _publicaciones = datos;
         _cargando = false;
       });
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted || solicitud != _solicitud) return;
       setState(() {
         _error = error.toString();
         _cargando = false;
       });
+      if (_publicaciones.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudieron actualizar las publicaciones: $error')),
+        );
+      }
     }
   }
 
@@ -312,10 +335,7 @@ class _ContenidoInicioState extends State<ContenidoInicio> {
           ),
           const SizedBox(height: 18),
           FilledButton.tonalIcon(
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const PantallaExplorar()),
-            ),
+            onPressed: widget.onExplorar,
             icon: const Icon(Icons.search_rounded),
             label: const Text('Explorar publicaciones'),
             style: FilledButton.styleFrom(
