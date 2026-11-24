@@ -24,8 +24,6 @@ class PantallaPublicacion extends StatefulWidget {
 class _PantallaPublicacionState extends State<PantallaPublicacion> {
   Publicacion? _publicacion;
   List<Comentario> _comentarios = [];
-  List<Sticker> _stickers = [];
-  int? _stickerSeleccionado;
   final _comentario = TextEditingController();
   bool _spoiler = false;
   bool _cargando = true;
@@ -48,13 +46,11 @@ class _PantallaPublicacionState extends State<PantallaPublicacion> {
       final api = ApiService();
       final publicacion = await api.obtenerPublicacion(widget.id);
       final comentarios = await api.obtenerComentarios(widget.id);
-      final stickers = await api.listarStickers();
 
       if (!mounted) return;
       setState(() {
         _publicacion = publicacion;
         _comentarios = comentarios;
-        _stickers = stickers;
         _cargando = false;
         _error = null;
       });
@@ -111,12 +107,11 @@ class _PantallaPublicacionState extends State<PantallaPublicacion> {
       await api.comentar(
         widget.id,
         _comentario.text.trim(),
-        _stickerSeleccionado,
+        null,
         _spoiler,
       );
 
       _comentario.clear();
-      setState(() => _stickerSeleccionado = null);
       await _cargar();
     } catch (e) {
       if (mounted) {
@@ -373,33 +368,6 @@ class _PantallaPublicacionState extends State<PantallaPublicacion> {
               maxLines: 3,
               decoration: const InputDecoration(
                 hintText: 'Escribe tu comentario...',
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 48,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: _stickers.length,
-                itemBuilder: (_, index) {
-                  final sticker = _stickers[index];
-                  final seleccionado = _stickerSeleccionado == sticker.id;
-
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
-                      label: Text(sticker.nombre),
-                      selected: seleccionado,
-                      onSelected: (_) {
-                        setState(() {
-                          _stickerSeleccionado = seleccionado
-                              ? null
-                              : sticker.id;
-                        });
-                      },
-                    ),
-                  );
-                },
               ),
             ),
             const SizedBox(height: 12),
